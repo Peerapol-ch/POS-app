@@ -238,11 +238,11 @@ export default function KitchenDisplay() {
 
   const getTimeElapsed = useCallback((createdAt: string) => {
     const diff = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000)
-    if (diff < 0) return { text: '0m', seconds: diff, urgent: false }
-    if (diff < 60) return { text: '<1m', seconds: diff, urgent: false }
-    if (diff < 600) return { text: `${Math.floor(diff / 60)}m`, seconds: diff, urgent: false }
-    if (diff < 3600) return { text: `${Math.floor(diff / 60)}m`, seconds: diff, urgent: true }
-    return { text: `${Math.floor(diff / 3600)}h`, seconds: diff, urgent: true }
+    if (diff < 0) return { text: '0วิ', seconds: diff, urgent: false }
+    if (diff < 60) return { text: '<1นาที', seconds: diff, urgent: false }
+    if (diff < 600) return { text: `${Math.floor(diff / 60)}นาที`, seconds: diff, urgent: false }
+    if (diff < 3600) return { text: `${Math.floor(diff / 60)}นาที`, seconds: diff, urgent: true }
+    return { text: `${Math.floor(diff / 3600)}ชม.`, seconds: diff, urgent: true }
   }, [])
 
   const stats = useMemo(() => {
@@ -260,7 +260,7 @@ export default function KitchenDisplay() {
       <main className="min-h-screen flex items-center justify-center bg-stone-100">
         <div className="text-center">
           <Loader className="w-12 h-12 text-stone-400 animate-spin mx-auto mb-4" />
-          <p className="text-stone-500 font-medium">Loading Kitchen Display...</p>
+          <p className="text-stone-500 font-medium">กำลังโหลดข้อมูลครัว...</p>
         </div>
       </main>
     )
@@ -271,9 +271,9 @@ export default function KitchenDisplay() {
       <main className="min-h-screen flex items-center justify-center bg-stone-100 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-sm max-w-md w-full text-center border border-stone-200">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-stone-800 mb-2">Connection Error</h2>
+          <h2 className="text-lg font-bold text-stone-800 mb-2">เชื่อมต่อขัดข้อง</h2>
           <p className="text-stone-500 mb-6 text-sm">{error}</p>
-          <button onClick={() => loadOrders(false)} className="w-full py-2.5 bg-stone-800 text-white rounded-xl font-medium">Try Again</button>
+          <button onClick={() => loadOrders(false)} className="w-full py-2.5 bg-stone-800 text-white rounded-xl font-medium">ลองใหม่</button>
         </div>
       </main>
     )
@@ -291,8 +291,8 @@ export default function KitchenDisplay() {
                 <ChefHat className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-black text-stone-800 tracking-tight">KITCHEN</h1>
-                <p className="text-xs text-stone-500 font-medium -mt-1">Display System</p>
+                <h1 className="text-xl font-black text-stone-800 tracking-tight">ระบบครัว</h1>
+                <p className="text-xs text-stone-500 font-medium -mt-1">KDS Display</p>
               </div>
             </div>
 
@@ -308,7 +308,7 @@ export default function KitchenDisplay() {
                 refreshing ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
               }`}>
                 <CircleDot className={`w-3 h-3 ${refreshing ? 'animate-pulse' : ''}`} />
-                {refreshing ? 'Syncing' : 'Online'}
+                {refreshing ? 'ซิงค์ข้อมูล' : 'ออนไลน์'}
               </div>
             </div>
           </div>
@@ -316,7 +316,7 @@ export default function KitchenDisplay() {
           {/* Action Bar & Stats */}
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             {/* Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2 md:mb-0">
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 className={`p-2 rounded-lg transition-all border ${soundEnabled ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-400 border-stone-200'}`}
@@ -335,34 +335,34 @@ export default function KitchenDisplay() {
                 className="px-3 py-2 rounded-lg bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 text-sm font-bold flex items-center gap-2"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Refresh</span>
+                <span className="hidden sm:inline">รีเฟรช</span>
               </button>
                <button
                   onClick={() => setShowMenuModal(true)}
                   className="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-bold flex items-center gap-2 shadow-sm"
                 >
                   <Monitor className="w-4 h-4" />
-                  <span className="hidden sm:inline">Menu</span>
+                  <span className="hidden sm:inline">จัดการเมนู</span>
                 </button>
             </div>
 
-            {/* Dashboard Stats - Responsive Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1 max-w-2xl w-full">
+            {/* Dashboard Stats - Thai Language */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1 max-w-2xl w-full">
               <div className="bg-amber-100 rounded-lg p-2 flex flex-col items-center justify-center border-b-4 border-amber-400">
                 <span className="text-2xl font-black text-amber-800 leading-none">{stats.pending}</span>
-                <span className="text-[10px] font-bold text-amber-700 uppercase">Pending</span>
+                <span className="text-[10px] font-bold text-amber-700 uppercase">รอทำ</span>
               </div>
               <div className="bg-sky-100 rounded-lg p-2 flex flex-col items-center justify-center border-b-4 border-sky-400">
                 <span className="text-2xl font-black text-sky-800 leading-none">{stats.cooking}</span>
-                <span className="text-[10px] font-bold text-sky-700 uppercase">Cooking</span>
+                <span className="text-[10px] font-bold text-sky-700 uppercase">กำลังทำ</span>
               </div>
               <div className="bg-emerald-100 rounded-lg p-2 flex flex-col items-center justify-center border-b-4 border-emerald-400">
                 <span className="text-2xl font-black text-emerald-800 leading-none">{stats.completed}</span>
-                <span className="text-[10px] font-bold text-emerald-700 uppercase">Done</span>
+                <span className="text-[10px] font-bold text-emerald-700 uppercase">เสร็จแล้ว</span>
               </div>
               <div className="bg-stone-100 rounded-lg p-2 flex flex-col items-center justify-center border-b-4 border-stone-400">
                 <span className="text-2xl font-black text-stone-800 leading-none">{stats.orders}</span>
-                <span className="text-[10px] font-bold text-stone-600 uppercase">Tickets</span>
+                <span className="text-[10px] font-bold text-stone-600 uppercase">บิลทั้งหมด</span>
               </div>
             </div>
           </div>
@@ -382,16 +382,16 @@ export default function KitchenDisplay() {
               // Card Status Styling
               let statusColor = 'emerald'
               let StatusIcon = CheckCircle
-              let statusLabel = 'READY'
+              let statusLabel = 'พร้อมเสิร์ฟ'
               
               if (hasPending) {
                 statusColor = 'amber'
                 StatusIcon = Clock
-                statusLabel = 'WAITING'
+                statusLabel = 'รอคิว'
               } else if (hasCooking) {
                 statusColor = 'sky'
                 StatusIcon = Flame
-                statusLabel = 'COOKING'
+                statusLabel = 'กำลังทำ'
               }
 
               // Tailwind classes construction
@@ -415,17 +415,17 @@ export default function KitchenDisplay() {
                             <span className="text-xs font-mono text-stone-400">#{order.order_id.split('-').pop()}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className={`p-1.5 shrink-0 rounded-md ${isTakeaway ? 'bg-purple-100 text-purple-700' : 'bg-stone-800 text-white'}`}>
+                            <div className={`p-1.5 rounded-md ${isTakeaway ? 'bg-purple-100 text-purple-700' : 'bg-stone-800 text-white'}`}>
                                 {isTakeaway ? <Home className="w-4 h-4" /> : <UtensilsCrossed className="w-4 h-4" />}
                             </div>
-                            <span className="text-xl font-black text-stone-800 break-words leading-tight">
-                                {isTakeaway ? 'Takeaway' : `Table ${order.table_number}`}
+                            <span className="text-xl font-black text-stone-800">
+                                {isTakeaway ? 'กลับบ้าน' : `โต๊ะ ${order.table_number}`}
                             </span>
                         </div>
                     </div>
                     
                     <div className="text-right shrink-0">
-                         <div className="text-xs font-medium text-stone-500 mb-0.5">Time</div>
+                         <div className="text-xs font-medium text-stone-500 mb-0.5">รอมานาน</div>
                          {order.items.length > 0 && (
                              (() => {
                                  const timeInfo = getTimeElapsed(order.items[0].created_at)
@@ -439,7 +439,7 @@ export default function KitchenDisplay() {
                     </div>
                   </div>
 
-                  {/* Items List - Full height, no scroll constraints */}
+                  {/* Items List */}
                   <div className="p-2 flex-1 flex flex-col gap-2">
                     {order.items.map((item) => {
                       const itemStatus = item.status || 'pending'
@@ -462,7 +462,7 @@ export default function KitchenDisplay() {
 
                       return (
                         <div key={item.id} className={`flex gap-3 p-3 rounded-lg border border-stone-100 ${rowBg} transition-all`}>
-                          {/* Quantity Badge */}
+                          {/* Quantity Badge - Big & Clear */}
                           <div className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-lg text-lg font-black ${qtyColor}`}>
                             x{item.quantity}
                           </div>
@@ -477,7 +477,7 @@ export default function KitchenDisplay() {
                              
                              {/* Notes - High Contrast */}
                              {item.notes && (
-                                 <div className="mt-1.5 inline-block bg-orange-100 border-l-4 border-orange-500 text-orange-800 text-xs font-bold px-2 py-1 rounded-r break-words max-w-full">
+                                 <div className="mt-1.5 inline-block bg-orange-100 border-l-4 border-orange-500 text-orange-800 text-xs font-bold px-2 py-1 rounded-r max-w-full break-words">
                                      ⚠️ {item.notes}
                                  </div>
                              )}
@@ -521,9 +521,9 @@ export default function KitchenDisplay() {
                         className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl font-bold text-base shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 transition-all"
                       >
                         {sendingOrder === order.id ? (
-                          <> <Loader className="w-5 h-5 animate-spin" /> Sending... </>
+                          <> <Loader className="w-5 h-5 animate-spin" /> กำลังส่ง... </>
                         ) : (
-                          <> <Send className="w-5 h-5" /> SERVE ORDER </>
+                          <> <Send className="w-5 h-5" /> เสิร์ฟออเดอร์ </>
                         )}
                       </button>
                     </div>
@@ -535,8 +535,8 @@ export default function KitchenDisplay() {
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-stone-300">
             <Bell className="w-24 h-24 mb-4 opacity-20" />
-            <h3 className="text-2xl font-bold text-stone-400">All caught up!</h3>
-            <p className="text-stone-400">No active orders in the kitchen.</p>
+            <h3 className="text-2xl font-bold text-stone-400">ว่างงานจ้า!</h3>
+            <p className="text-stone-400">ยังไม่มีออเดอร์เข้ามาในครัว</p>
           </div>
         )}
       </div>
