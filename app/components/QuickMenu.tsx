@@ -125,11 +125,11 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
   return (
     <>
       {/* FAB Container */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
         {/* Menu Popup */}
         {showMenu && (
-          <div className="absolute bottom-16 right-0 animate-in slide-in-from-bottom-4 zoom-in-95 duration-300">
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden min-w-[280px]">
+          <div className="absolute bottom-16 right-0 w-[calc(100vw-32px)] sm:w-80 animate-in slide-in-from-bottom-4 zoom-in-95 duration-300 origin-bottom-right">
+            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
               {/* Header */}
               <div className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
@@ -137,14 +137,14 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
                   <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
                 </div>
-                <div className="relative p-5">
+                <div className="relative p-4 md:p-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center border border-white/20">
-                      <User className="w-6 h-6 text-white" />
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center border border-white/20 shrink-0">
+                      <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
-                    <div>
-                      <p className="text-white font-bold">{user. Name}</p>
-                      <p className="text-gray-400 text-sm">
+                    <div className="min-w-0">
+                      <p className="text-white font-bold truncate">{user.Name}</p>
+                      <p className="text-gray-400 text-xs md:text-sm">
                         {user.role === 'owner'
                           ? 'เจ้าของร้าน'
                           : user.role === 'chef'
@@ -159,47 +159,47 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
               </div>
 
               {/* Menu Items */}
-              <div className="p-3 space-y-2 max-h-[50vh] overflow-y-auto">
+              <div className="p-2 md:p-3 space-y-1 md:space-y-2 max-h-[60vh] overflow-y-auto">
                 {visibleItems.map((item) => (
                   <Link
                     key={item.href}
-                    href={item. href}
+                    href={item.href}
                     onClick={() => setShowMenu(false)}
-                    className="group relative flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-all duration-200 overflow-hidden"
+                    className="group relative flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-gray-50 transition-all duration-200 overflow-hidden"
                   >
                     <div
-                      className={`absolute inset-0 bg-gradient-to-r ${item.color} opacity-0 group-hover: opacity-5 transition-opacity duration-300`}
+                      className={`absolute inset-0 bg-gradient-to-r ${item.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}
                     />
                     <div
-                      className={`relative w-12 h-12 ${item.iconBg} rounded-2xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}
+                      className={`relative w-10 h-10 md:w-12 md:h-12 ${item.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shrink-0`}
                     >
-                      <item.icon className={`w-6 h-6 ${item.iconColor}`} />
+                      <item.icon className={`w-5 h-5 md:w-6 md:h-6 ${item.iconColor}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-800 group-hover: text-gray-900 transition-colors">
+                      <p className="font-bold text-gray-800 text-sm md:text-base group-hover:text-gray-900 transition-colors truncate">
                         {item.label}
                       </p>
-                      <p className="text-sm text-gray-500 truncate">{item.description}</p>
+                      <p className="text-xs md:text-sm text-gray-500 truncate">{item.description}</p>
                     </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0">
-                      <ArrowRight className={`w-5 h-5 ${item. iconColor}`} />
+                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0 shrink-0">
+                      <ArrowRight className={`w-4 h-4 md:w-5 md:h-5 ${item.iconColor}`} />
                     </div>
                   </Link>
                 ))}
               </div>
 
               {/* Logout Button */}
-              <div className="p-3 border-t border-gray-100">
+              <div className="p-2 md:p-3 border-t border-gray-100">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-red-50 transition-all text-red-600"
+                  className="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-red-50 transition-all text-red-600"
                 >
-                  <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
-                    <LogOut className="w-6 h-6" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+                    <LogOut className="w-5 h-5 md:w-6 md:h-6" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-bold">ออกจากระบบ</p>
-                    <p className="text-sm text-red-400">Logout</p>
+                    <p className="font-bold text-sm md:text-base">ออกจากระบบ</p>
+                    <p className="text-xs md:text-sm text-red-400">Logout</p>
                   </div>
                 </button>
               </div>
@@ -210,16 +210,16 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
         {/* FAB Button */}
         <button
           onClick={() => setShowMenu(!showMenu)}
-          className={`relative w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-300 ${
+          className={`relative w-12 h-12 md:w-14 md:h-14 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-300 ${
             showMenu
               ? 'bg-gray-800 rotate-45 scale-90'
-              : 'bg-gradient-to-br from-gray-800 to-gray-900 hover: from-gray-700 hover:to-gray-800 hover:scale-105 hover:shadow-2xl'
+              : 'bg-gradient-to-br from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 hover:scale-105 hover:shadow-2xl'
           }`}
         >
           <div className="relative">
-            {showMenu ? <X className="w-6 h-6 text-white" /> : <Plus className="w-6 h-6 text-white" />}
+            {showMenu ? <X className="w-5 h-5 md:w-6 md:h-6 text-white" /> : <Plus className="w-5 h-5 md:w-6 md:h-6 text-white" />}
           </div>
-          {! showMenu && (
+          {!showMenu && (
             <div className="absolute inset-0 rounded-2xl border-2 border-white/20 animate-ping opacity-30" />
           )}
         </button>
@@ -228,7 +228,7 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
       {/* Backdrop */}
       {showMenu && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setShowMenu(false)}
         />
       )}
