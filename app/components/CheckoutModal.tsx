@@ -23,6 +23,7 @@ import {
   Circle,
   Gift,
   Sparkles,
+  ChevronDown
 } from 'lucide-react'
 import DrinkSelectionModal from './DrinkSelectionModal'
 import ReceiptModal from './ReceiptModal'
@@ -31,14 +32,14 @@ interface CheckoutModalProps {
   tableId: number;
   tableName: string | number;
   onClose: () => void;
-  onSuccess?  :    () => void;
+  onSuccess?: () => void;
 }
 
 interface OrderItem {
   id: number
   quantity: number
   price: number
-  menu_items?  :   {
+  menu_items?: {
     name: string
   }
 }
@@ -47,7 +48,7 @@ interface CustomerInfo {
   id: string
   username: string | null
   points: number
-  avatar_url:   string | null
+  avatar_url: string | null
 }
 
 interface OrderData {
@@ -57,8 +58,8 @@ interface OrderData {
   customer_count: number
   created_at: string
   customer_id: string | null
-  items:   OrderItem[]
-  customer? :  CustomerInfo | null
+  items: OrderItem[]
+  customer?: CustomerInfo | null
 }
 
 type PaymentMethod = 'cash' | 'promptpay' | null
@@ -98,8 +99,8 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     total_amount: number
     items: OrderItem[]
     table_number: string | number
-    earned_points?:  number  // ✅ เพิ่มคะแนนที่ได้รับ
-    new_total_points?: number  // ✅ เพิ่มคะแนนรวมใหม่
+    earned_points?: number 
+    new_total_points?: number 
   } | null>(null)
 
   // ✅ ตรวจสอบว่าเป็น Mobile หรือไม่
@@ -117,7 +118,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     try {
       setLoading(true)
       const { data, error } = await supabase
-        . from('orders')
+        .from('orders')
         .select(`
           *,
           order_items (
@@ -138,7 +139,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
       if (data) {
         const items = data.order_items || []
-        const calculatedTotal = items.reduce((sum:  number, item: any) => sum + (item.price * item.quantity), 0)
+        const calculatedTotal = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
 
         let customerInfo: CustomerInfo | null = null
         if (data.customer_id) {
@@ -158,9 +159,9 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
           order_id: data.order_id,
           total_amount: calculatedTotal,
           customer_count: data.customer_count,
-          created_at: data. created_at,
-          customer_id:  data.customer_id,
-          items:  items,
+          created_at: data.created_at,
+          customer_id: data.customer_id,
+          items: items,
           customer: customerInfo
         }
         setOrder(formattedData)
@@ -173,7 +174,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
       } else {
         setError('ไม่พบรายการอาหารสำหรับโต๊ะนี้')
       }
-    } catch (err:  any) {
+    } catch (err: any) {
       console.error('Error fetching order:', err)
       setError(err.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล')
     } finally {
@@ -191,7 +192,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   useEffect(() => {
     return () => {
       if (cameraStream) {
-        cameraStream. getTracks().forEach(track => track.stop())
+        cameraStream.getTracks().forEach(track => track.stop())
       }
     }
   }, [cameraStream])
@@ -212,7 +213,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
       setSlipImage(file)
       const reader = new FileReader()
       reader.onloadend = () => {
-        setSlipPreview(reader. result as string)
+        setSlipPreview(reader.result as string)
       }
       reader.readAsDataURL(file)
     }
@@ -221,8 +222,8 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   // เปิดกล้อง - ใช้ Web Camera API สำหรับ PC
   const handleOpenCamera = async () => {
     if (isMobile()) {
-      if (cameraInputRef. current) {
-        cameraInputRef. current.click()
+      if (cameraInputRef.current) {
+        cameraInputRef.current.click()
       }
       return
     }
@@ -231,7 +232,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     setShowCameraModal(true)
 
     try {
-      const stream = await navigator.mediaDevices. getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
           width: { ideal: 1280 },
@@ -247,15 +248,15 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
           videoRef.current.play()
         }
       }, 100)
-    } catch (err:  any) {
+    } catch (err: any) {
       console.error('Camera error:', err)
-      setCameraError('ไม่สามารถเปิดกล้องได้:  ' + (err.message || 'กรุณาอนุญาตการใช้กล้อง'))
+      setCameraError('ไม่สามารถเปิดกล้องได้: ' + (err.message || 'กรุณาอนุญาตการใช้กล้อง'))
     }
   }
 
   // ถ่ายรูปจากกล้อง
   const handleCapturePhoto = () => {
-    if (! videoRef.current || !canvasRef.current) return
+    if (!videoRef.current || !canvasRef.current) return
 
     const video = videoRef.current
     const canvas = canvasRef.current
@@ -263,9 +264,9 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
     if (!context) return
 
-    canvas.width = video. videoWidth
-    canvas.height = video. videoHeight
-    context.drawImage(video, 0, 0, canvas.width, canvas. height)
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    context.drawImage(video, 0, 0, canvas.width, canvas.height)
 
     canvas.toBlob((blob) => {
       if (blob) {
@@ -298,7 +299,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   const handleRemoveSlip = () => {
     setSlipImage(null)
     setSlipPreview(null)
-    if (fileInputRef.current) fileInputRef.current. value = ''
+    if (fileInputRef.current) fileInputRef.current.value = ''
     if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
@@ -308,11 +309,11 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     
     setUploadingSlip(true)
     try {
-      const fileExt = slipImage. name.split('.').pop() || 'jpg'
+      const fileExt = slipImage.name.split('.').pop() || 'jpg'
       const fileName = `${order.order_id}_${Date.now()}.${fileExt}`
       const filePath = `slips/${fileName}`
 
-      const { error:  uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('Money_transfer_slip_image')
         .upload(filePath, slipImage)
 
@@ -322,9 +323,9 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
         .from('Money_transfer_slip_image')
         .getPublicUrl(filePath)
 
-      return urlData. publicUrl
+      return urlData.publicUrl
     } catch (err: any) {
-      console. error('Error uploading slip:', err)
+      console.error('Error uploading slip:', err)
       throw err
     } finally {
       setUploadingSlip(false)
@@ -335,15 +336,15 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   const updateCustomerPoints = async (customerId: string, pointsToAdd: number): Promise<number> => {
     try {
       // ดึงคะแนนปัจจุบัน
-      const { data: currentData, error:  fetchError } = await supabase
-        . from('profiles')
+      const { data: currentData, error: fetchError } = await supabase
+        .from('profiles')
         .select('points')
         .eq('id', customerId)
         .single()
 
       if (fetchError) throw fetchError
 
-      const currentPoints = currentData?. points || 0
+      const currentPoints = currentData?.points || 0
       const newTotalPoints = currentPoints + pointsToAdd
 
       // อัพเดทคะแนน
@@ -351,7 +352,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
         .from('profiles')
         .update({ 
           points: newTotalPoints,
-          updated_at:  new Date().toISOString()
+          updated_at: new Date().toISOString()
         })
         .eq('id', customerId)
 
@@ -360,7 +361,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
       console.log(`Updated points for customer ${customerId}: ${currentPoints} + ${pointsToAdd} = ${newTotalPoints}`)
       return newTotalPoints
     } catch (err: any) {
-      console. error('Error updating customer points:', err)
+      console.error('Error updating customer points:', err)
       throw err
     }
   }
@@ -387,7 +388,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
         }
       }
 
-      const updateData:  any = {
+      const updateData: any = {
         payment_status: paymentMethod,
         status: 'completed',
         total_amount: totalAmount,
@@ -395,18 +396,18 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
       }
       
       if (slipUrl) {
-        updateData. slip_url = slipUrl
+        updateData.slip_url = slipUrl
       }
 
       const { error: orderError } = await supabase
-        . from('orders')
+        .from('orders')
         .update(updateData)
         .eq('id', order.id)
 
       if (orderError) throw orderError
 
       const { error: tableError } = await supabase
-        . from('tables')
+        .from('tables')
         .update({ current_status: 'vacant' })
         .eq('id', tableId)
 
@@ -422,34 +423,34 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
       let newTotalPoints = 0
       const pointsEarned = calculatePoints(totalAmount)
       
-      if (order. customer_id && pointsEarned > 0) {
+      if (order.customer_id && pointsEarned > 0) {
         try {
           newTotalPoints = await updateCustomerPoints(order.customer_id, pointsEarned)
-          console.log(`Customer earned ${pointsEarned} points.  New total: ${newTotalPoints}`)
+          console.log(`Customer earned ${pointsEarned} points. New total: ${newTotalPoints}`)
         } catch (pointsError) {
           console.error('Failed to update points, but payment succeeded:', pointsError)
         }
       }
 
       const receiptInfo = {
-        order_id: order. order_id,
+        order_id: order.order_id,
         created_at: now,
         customer_count: order.customer_count,
         payment_status: paymentMethod,
         total_amount: totalAmount,
-        items:  order.items,
-        table_number:  tableName,
+        items: order.items,
+        table_number: tableName,
         earned_points: order.customer_id ? pointsEarned : undefined,
-        new_total_points:  order.customer_id ?  newTotalPoints :  undefined,
+        new_total_points: order.customer_id ? newTotalPoints : undefined,
       }
       
       setReceiptData(receiptInfo)
       setShowReceipt(true)
       setIsProcessing(false)
 
-    } catch (err:  any) {
+    } catch (err: any) {
       console.error('Payment Error:', err)
-      alert('เกิดข้อผิดพลาดในการชำระเงิน:  ' + (err. message || JSON.stringify(err)))
+      alert('เกิดข้อผิดพลาดในการชำระเงิน: ' + (err.message || JSON.stringify(err)))
       setIsProcessing(false)
     }
   }
@@ -474,146 +475,177 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-[90vh]">
+      {/* Modified Container for Mobile:
+        - p-0 on mobile, p-4 on desktop
+        - h-full on mobile, h-[90vh] on desktop
+        - flex-col on mobile, flex-row on desktop
+      */}
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-none md:rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-full md:h-[90vh]">
           
-          {/* Left Column */}
-          <div className="flex-1 flex flex-col bg-slate-50 border-r border-slate-200 relative">
-            <div className="p-6 bg-white border-b border-slate-100 flex justify-between items-center shadow-sm z-10">
+          {/* Left Column (Order Items)
+            - Mobile: Takes remaining space (flex-1) but has min-height to show content
+            - Desktop: Full height of container
+          */}
+          <div className="flex-1 flex flex-col bg-slate-50 border-r border-slate-200 relative overflow-hidden h-1/2 md:h-full">
+            
+            {/* Header Area */}
+            <div className="p-4 md:p-6 bg-white border-b border-slate-100 flex justify-between items-center shadow-sm z-10 shrink-0">
               <div>
-                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                  <Receipt className="w-6 h-6 text-lime-600" />
+                <h2 className="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-2">
+                  <Receipt className="w-5 h-5 md:w-6 md:h-6 text-lime-600" />
                   ใบรายการอาหาร
                 </h2>
-                <p className="text-slate-500 text-sm mt-1">ตรวจสอบรายการก่อนชำระเงิน</p>
+                <p className="text-slate-500 text-xs md:text-sm mt-1 hidden md:block">ตรวจสอบรายการก่อนชำระเงิน</p>
+                <p className="text-slate-500 text-xs mt-1 md:hidden">โต๊ะ: {tableName}</p>
               </div>
               
-              {order && (
-                <button 
-                  onClick={() => setShowDrinkModal(true)}
-                  className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-bold hover: bg-blue-100 transition-colors border border-blue-100 shadow-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  <Coffee className="w-4 h-4" />
-                  เพิ่มน้ำ
+              <div className="flex items-center gap-2">
+                {order && (
+                  <button 
+                    onClick={() => setShowDrinkModal(true)}
+                    className="flex items-center gap-1 md:gap-2 bg-blue-50 text-blue-600 px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm text-sm md:text-base"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">เพิ่มน้ำ</span>
+                    <Coffee className="w-4 h-4 sm:hidden" />
+                  </button>
+                )}
+                {/* Mobile Close Button in Header */}
+                <button onClick={onClose} className="md:hidden p-2 bg-slate-100 rounded-full hover:bg-red-50 hover:text-red-500">
+                   <X className="w-5 h-5" />
                 </button>
-              )}
+              </div>
             </div>
 
-            {/* แสดงข้อมูลสมาชิกถ้ามี */}
-            {order?. customer && (
-              <div className="mx-6 mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg">
-                    {order.customer. avatar_url ? (
-                      <img src={order.customer. avatar_url} alt="" className="w-full h-full object-cover rounded-xl" />
-                    ) : (
-                      <User className="w-6 h-6" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-purple-600" />
-                      <span className="text-xs text-purple-600 font-medium">สมาชิก</span>
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth">
+              
+              {/* แสดงข้อมูลสมาชิกถ้ามี */}
+              {order?.customer && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shrink-0">
+                      {order.customer.avatar_url ? (
+                        <img src={order.customer.avatar_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <User className="w-6 h-6" />
+                      )}
                     </div>
-                    <p className="font-bold text-slate-800">{order.customer.username || 'ลูกค้า'}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-1 text-amber-600">
-                      <Star className="w-4 h-4" />
-                      <span className="font-bold">{order.customer. points || 0}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-purple-600" />
+                        <span className="text-xs text-purple-600 font-medium">สมาชิก</span>
+                      </div>
+                      <p className="font-bold text-slate-800 truncate">{order.customer.username || 'ลูกค้า'}</p>
                     </div>
-                    <p className="text-xs text-slate-500">คะแนนสะสม</p>
+                    <div className="text-right shrink-0">
+                      <div className="flex items-center gap-1 text-amber-600 justify-end">
+                        <Star className="w-4 h-4" />
+                        <span className="font-bold">{order.customer.points || 0}</span>
+                      </div>
+                      <p className="text-xs text-slate-500">คะแนนสะสม</p>
+                    </div>
                   </div>
+
+                  {/* ✅ แสดงคะแนนที่จะได้รับ */}
+                  {earnedPoints > 0 && (
+                    <div className="mt-3 pt-3 border-t border-purple-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-emerald-600">
+                          <Gift className="w-4 h-4" />
+                          <span className="text-sm font-medium">คะแนนที่จะได้รับ</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Sparkles className="w-4 h-4 text-amber-500" />
+                          <span className="font-bold text-emerald-600">+{earnedPoints} คะแนน</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              )}
 
-                {/* ✅ แสดงคะแนนที่จะได้รับ */}
-                {earnedPoints > 0 && (
-                  <div className="mt-3 pt-3 border-t border-purple-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-emerald-600">
-                        <Gift className="w-4 h-4" />
-                        <span className="text-sm font-medium">คะแนนที่จะได้รับ</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        <span className="font-bold text-emerald-600">+{earnedPoints} คะแนน</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">ซื้อครบ 100 บาท = 1 คะแนน</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex-1 overflow-y-auto p-6">
-              {loading ?  (
-                <div className="flex flex-col items-center justify-center h-full space-y-4">
-                  <Loader className="w-12 h-12 text-lime-500 animate-spin" />
+              {loading ? (
+                <div className="flex flex-col items-center justify-center h-40 md:h-full space-y-4">
+                  <Loader className="w-10 h-10 md:w-12 md:h-12 text-lime-500 animate-spin" />
                   <p className="text-slate-400 font-medium">กำลังดึงข้อมูลใบเสร็จ...</p>
                 </div>
               ) : error ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="flex flex-col items-center justify-center h-40 md:h-full text-center">
                   <div className="bg-red-100 p-4 rounded-full mb-4">
                     <X className="w-8 h-8 text-red-500" />
                   </div>
                   <h3 className="text-lg font-bold text-slate-700">ไม่พบข้อมูล</h3>
                   <p className="text-slate-500">{error}</p>
                 </div>
-              ) : order ?  (
+              ) : order ? (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100 text-slate-500 text-sm uppercase tracking-wider border-b border-slate-200">
-                        <th className="p-4 font-semibold">รายการเมนู</th>
-                        <th className="p-4 font-semibold text-center w-24">จำนวน</th>
-                        <th className="p-4 font-semibold text-right w-32">ราคา/หน่วย</th>
-                        <th className="p-4 font-semibold text-right w-32 bg-slate-200/50">รวม</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {order.items.map((item, index) => (
-                        <tr key={item.id || index} className="hover:bg-lime-50/50 transition-colors">
-                          <td className="p-4 font-medium text-slate-700">
-                            {item.menu_items?. name || 'ไม่ระบุชื่อ'}
+                  {/* Wrap table in overflow-x-auto for mobile */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[350px]">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-500 text-xs md:text-sm uppercase tracking-wider border-b border-slate-200">
+                          <th className="p-3 md:p-4 font-semibold">รายการ</th>
+                          <th className="p-3 md:p-4 font-semibold text-center w-16 md:w-24">จำนวน</th>
+                          <th className="p-3 md:p-4 font-semibold text-right w-24 md:w-32 hidden sm:table-cell">ราคา</th>
+                          <th className="p-3 md:p-4 font-semibold text-right w-24 md:w-32 bg-slate-200/50">รวม</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {order.items.map((item, index) => (
+                          <tr key={item.id || index} className="hover:bg-lime-50/50 transition-colors text-sm md:text-base">
+                            <td className="p-3 md:p-4 font-medium text-slate-700">
+                              <div className="line-clamp-2">
+                                {item.menu_items?.name || 'ไม่ระบุชื่อ'}
+                              </div>
+                              {/* Mobile Price Display */}
+                              <div className="sm:hidden text-xs text-slate-400 mt-1">
+                                {item.price.toLocaleString()} / หน่วย
+                              </div>
+                            </td>
+                            <td className="p-3 md:p-4 text-center">
+                              <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-xs md:text-sm font-bold whitespace-nowrap">
+                                x {item.quantity}
+                              </span>
+                            </td>
+                            <td className="p-3 md:p-4 text-right text-slate-500 font-mono hidden sm:table-cell">
+                              {item.price.toLocaleString()}
+                            </td>
+                            <td className="p-3 md:p-4 text-right font-bold text-slate-800 font-mono bg-slate-50/50">
+                              {(item.price * item.quantity).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-slate-50 border-t border-slate-200">
+                        <tr>
+                          <td colSpan={2} className="p-3 md:p-4 text-right font-bold text-slate-600 text-xs md:text-sm">
+                             <span className="sm:hidden">จำนวนรวม</span>
+                             <span className="hidden sm:inline">รวมจำนวนรายการ</span>
                           </td>
-                          <td className="p-4 text-center">
-                            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-sm font-bold">
-                              x{item.quantity}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right text-slate-500 font-mono">
-                            {item.price. toLocaleString()}
-                          </td>
-                          <td className="p-4 text-right font-bold text-slate-800 font-mono bg-slate-50/50">
-                            {(item.price * item.quantity).toLocaleString()}
+                          <td className="p-3 md:p-4 text-right font-bold text-slate-800 text-sm md:text-base hidden sm:table-cell"></td>
+                          <td className="p-3 md:p-4 text-right font-bold text-slate-800 text-sm md:text-base">
+                            {order.items.reduce((acc, item) => acc + item.quantity, 0)}
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-slate-50 border-t border-slate-200">
-                      <tr>
-                        <td colSpan={3} className="p-4 text-right font-bold text-slate-600">รวมจำนวนรายการ</td>
-                        <td className="p-4 text-right font-bold text-slate-800">
-                          {order.items.reduce((acc, item) => acc + item.quantity, 0)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               ) : null}
             </div>
           </div>
 
-          {/* Right Column */}
-          <div className="w-full md:w-[420px] bg-white flex flex-col h-full shadow-l-xl z-20">
-            <div className="md:hidden p-4 border-b flex justify-end">
-              <button onClick={onClose} className="p-2 bg-slate-100 rounded-full">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 flex-1 flex flex-col gap-5 overflow-y-auto">
+          {/* Right Column (Payment & Actions)
+            - Mobile: Stacks below, full width, border-top for separation
+            - Desktop: Fixed width, right side
+          */}
+          <div className="w-full md:w-[420px] bg-white flex flex-col h-1/2 md:h-full shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-l-xl z-20 border-t md:border-t-0 md:border-l border-slate-200">
+            
+            {/* Scrollable part of Right Column */}
+            <div className="p-4 md:p-6 flex-1 flex flex-col gap-4 md:gap-5 overflow-y-auto bg-white">
+              
               <div className="hidden md:flex justify-end mb-2">
                 <button onClick={onClose} className="group p-2 hover:bg-red-50 rounded-full transition-colors flex items-center gap-2 text-slate-400 hover:text-red-500 text-sm font-medium">
                   ยกเลิก / ปิดหน้าต่าง <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
@@ -621,37 +653,37 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               </div>
 
               {order && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <div className="text-xs text-slate-400 font-bold uppercase mb-1 flex items-center gap-1">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
+                  <div className="bg-slate-50 p-2 md:p-3 rounded-xl border border-slate-100">
+                    <div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase mb-1 flex items-center gap-1">
                       <Calendar className="w-3 h-3" /> วันที่
                     </div>
-                    <div className="text-sm font-semibold text-slate-700">
+                    <div className="text-xs md:text-sm font-semibold text-slate-700">
                       {new Date(order.created_at).toLocaleDateString('th-TH')}
                     </div>
                   </div>
-                  <div className="col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
-                    <div className="text-xs text-slate-400 font-bold uppercase flex items-center gap-1">
+                  <div className="col-span-2 bg-slate-50 p-2 md:p-3 rounded-xl border border-slate-100 flex justify-between items-center">
+                    <div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase flex items-center gap-1">
                       <Receipt className="w-3 h-3" /> Order ID
                     </div>
-                    <div className="font-mono font-bold text-slate-600 tracking-wider">
+                    <div className="font-mono font-bold text-xs md:text-sm text-slate-600 tracking-wider">
                       {order.order_id}
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="bg-lime-50 rounded-2xl p-5 border-2 border-lime-100 text-center space-y-1">
-                <div className="text-lime-700 font-semibold text-sm uppercase tracking-widest">ยอดสุทธิที่ต้องชำระ</div>
-                <div className="text-4xl font-black text-lime-600 font-mono tracking-tighter">
-                  {order ?  calculateTotal(order.items).toLocaleString() : '0'}
-                  <span className="text-base text-lime-500 font-bold ml-2">THB</span>
+              <div className="bg-lime-50 rounded-2xl p-4 md:p-5 border-2 border-lime-100 text-center space-y-1 shrink-0">
+                <div className="text-lime-700 font-semibold text-xs md:text-sm uppercase tracking-widest">ยอดสุทธิที่ต้องชำระ</div>
+                <div className="text-3xl md:text-4xl font-black text-lime-600 font-mono tracking-tighter">
+                  {order ? calculateTotal(order.items).toLocaleString() : '0'}
+                  <span className="text-sm md:text-base text-lime-500 font-bold ml-2">THB</span>
                 </div>
                 {/* ✅ แสดงคะแนนที่จะได้รับใน Summary */}
-                {order?. customer_id && earnedPoints > 0 && (
+                {order?.customer_id && earnedPoints > 0 && (
                   <div className="flex items-center justify-center gap-2 mt-2 text-emerald-600">
-                    <Gift className="w-4 h-4" />
-                    <span className="text-sm font-medium">รับ +{earnedPoints} คะแนน</span>
+                    <Gift className="w-3 h-3 md:w-4 md:h-4" />
+                    <span className="text-xs md:text-sm font-medium">รับ +{earnedPoints} คะแนน</span>
                   </div>
                 )}
               </div>
@@ -659,60 +691,60 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               <div className="space-y-3">
                 <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
                   <div className="w-1 h-4 bg-lime-500 rounded-full"></div>
-                  เลือกวิธีการชำระเงิน
+                  วิธีการชำระเงิน
                 </div>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
                   <button
                     onClick={() => {
                       setPaymentMethod('cash')
                       handleRemoveSlip()
                     }}
-                    className={`relative p-4 rounded-xl border-2 flex items-center gap-4 transition-all group ${
+                    className={`relative p-3 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-4 transition-all group ${
                       paymentMethod === 'cash' 
                         ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-200 ring-offset-2' 
-                        :  'border-slate-100 bg-white hover:border-green-300 hover: bg-green-50/50'
+                        : 'border-slate-100 bg-white hover:border-green-300 hover:bg-green-50/50'
                     }`}
                   >
-                    <div className={`p-3 rounded-full ${paymentMethod === 'cash' ? 'bg-green-500 text-white' :  'bg-slate-100 text-slate-500 group-hover:bg-green-100 group-hover:text-green-600'}`}>
-                      <Banknote className="w-6 h-6" />
+                    <div className={`p-2 md:p-3 rounded-full shrink-0 ${paymentMethod === 'cash' ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-green-100 group-hover:text-green-600'}`}>
+                      <Banknote className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
-                    <div className="text-left">
-                      <div className={`font-bold ${paymentMethod === 'cash' ?  'text-green-800' : 'text-slate-700'}`}>เงินสด (Cash)</div>
-                      <div className="text-xs text-slate-400">ชำระด้วยธนบัตรหรือเหรียญ</div>
+                    <div className="text-center md:text-left">
+                      <div className={`font-bold text-sm md:text-base ${paymentMethod === 'cash' ? 'text-green-800' : 'text-slate-700'}`}>เงินสด</div>
+                      <div className="hidden md:block text-xs text-slate-400">ชำระด้วยธนบัตร</div>
                     </div>
-                    {paymentMethod === 'cash' && <CheckCircle2 className="absolute right-4 w-6 h-6 text-green-500" />}
+                    {paymentMethod === 'cash' && <CheckCircle2 className="absolute top-2 right-2 md:top-auto md:right-4 w-5 h-5 md:w-6 md:h-6 text-green-500" />}
                   </button>
                   
                   <button
                     onClick={() => setPaymentMethod('promptpay')}
-                    className={`relative p-4 rounded-xl border-2 flex items-center gap-4 transition-all group ${
+                    className={`relative p-3 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-4 transition-all group ${
                       paymentMethod === 'promptpay' 
                         ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200 ring-offset-2' 
                         : 'border-slate-100 bg-white hover:border-blue-300 hover:bg-blue-50/50'
                     }`}
                   >
-                    <div className={`p-3 rounded-full ${paymentMethod === 'promptpay' ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500 group-hover: bg-blue-100 group-hover: text-blue-600'}`}>
-                      <QrCode className="w-6 h-6" />
+                    <div className={`p-2 md:p-3 rounded-full shrink-0 ${paymentMethod === 'promptpay' ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
+                      <QrCode className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
-                    <div className="text-left">
-                      <div className={`font-bold ${paymentMethod === 'promptpay' ? 'text-blue-800' : 'text-slate-700'}`}>พร้อมเพย์ (PromptPay)</div>
-                      <div className="text-xs text-slate-400">สแกน QR Code เพื่อชำระเงิน</div>
+                    <div className="text-center md:text-left">
+                      <div className={`font-bold text-sm md:text-base ${paymentMethod === 'promptpay' ? 'text-blue-800' : 'text-slate-700'}`}>PromptPay</div>
+                      <div className="hidden md:block text-xs text-slate-400">สแกน QR Code</div>
                     </div>
-                    {paymentMethod === 'promptpay' && <CheckCircle2 className="absolute right-4 w-6 h-6 text-blue-500" />}
+                    {paymentMethod === 'promptpay' && <CheckCircle2 className="absolute top-2 right-2 md:top-auto md:right-4 w-5 h-5 md:w-6 md:h-6 text-blue-500" />}
                   </button>
                 </div>
               </div>
 
               {/* ส่วนอัพโหลดสลิป */}
               {paymentMethod === 'promptpay' && (
-                <div className="space-y-3 animate-in slide-in-from-top-4 duration-300">
+                <div className="space-y-3 animate-in slide-in-from-top-4 duration-300 pb-20 md:pb-0">
                   <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
                     <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                    อัพโหลดสลิปการโอนเงิน
+                    สลิปการโอน
                     <span className="text-red-500">*</span>
                   </div>
 
-                  {/* Hidden Input สำหรับ Mobile Camera */}
+                  {/* Hidden Inputs */}
                   <input
                     ref={cameraInputRef}
                     type="file"
@@ -721,8 +753,6 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                     onChange={handleSlipSelect}
                     className="hidden"
                   />
-
-                  {/* Hidden Input สำหรับเลือกไฟล์ */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -731,32 +761,28 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                     className="hidden"
                   />
 
-                  {! slipPreview ?  (
-                    <div className="border-2 border-dashed border-blue-200 rounded-xl p-6 bg-blue-50/50">
-                      <div className="text-center space-y-4">
-                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                          <ImageIcon className="w-8 h-8 text-blue-500" />
+                  {!slipPreview ? (
+                    <div className="border-2 border-dashed border-blue-200 rounded-xl p-4 md:p-6 bg-blue-50/50">
+                      <div className="text-center space-y-3 md:space-y-4">
+                        <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                          <ImageIcon className="w-6 h-6 md:w-8 md:h-8 text-blue-500" />
                         </div>
-                        <div>
-                          <p className="text-slate-600 font-medium mb-1">ถ่ายรูปหรือเลือกรูปสลิป</p>
-                          <p className="text-xs text-slate-400">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 10MB</p>
-                        </div>
-                        <div className="flex gap-3 justify-center">
+                        <div className="flex gap-2 justify-center">
                           <button
                             type="button"
                             onClick={handleOpenCamera}
-                            className="flex items-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg active:scale-95"
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg active:scale-95 text-sm md:text-base"
                           >
-                            <Camera className="w-5 h-5" />
+                            <Camera className="w-4 h-4 md:w-5 md:h-5" />
                             ถ่ายรูป
                           </button>
 
                           <button
                             type="button"
                             onClick={handleOpenGallery}
-                            className="flex items-center gap-2 px-4 py-3 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-colors border-2 border-blue-200 active:scale-95"
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-3 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-colors border-2 border-blue-200 active:scale-95 text-sm md:text-base"
                           >
-                            <Upload className="w-5 h-5" />
+                            <Upload className="w-4 h-4 md:w-5 md:h-5" />
                             เลือกไฟล์
                           </button>
                         </div>
@@ -780,44 +806,41 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-                          <div className="absolute bottom-2 left-2 flex items-center gap-2 bg-green-500 text-white px-3 py-1.5 rounded-full text-sm font-bold">
-                            <CheckCircle2 className="w-4 h-4" />
-                            อัพโหลดสลิปแล้ว
-                          </div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {paymentMethod === 'promptpay' && ! slipImage && (
-                    <p className="text-center text-red-500 text-sm font-medium flex items-center justify-center gap-1">
-                      <X className="w-4 h-4" />
-                      กรุณาถ่ายรูปหรืออัพโหลดสลิปก่อนยืนยันการชำระเงิน
+                  {paymentMethod === 'promptpay' && !slipImage && (
+                    <p className="text-center text-red-500 text-xs font-medium flex items-center justify-center gap-1">
+                      <X className="w-3 h-3" />
+                      กรุณาแนบสลิปก่อนยืนยัน
                     </p>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="p-6 bg-white border-t border-slate-100 mt-auto">
+            {/* Footer Button - Fixed on Mobile (part of Right Column) */}
+            <div className="p-4 md:p-6 bg-white border-t border-slate-100 shrink-0">
               <button 
                 onClick={handlePayment}
                 disabled={loading || !!error || !canConfirmPayment() || isProcessing || uploadingSlip}
-                className={`w-full py-4 rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-3 text-lg
-                  ${loading || !!error || ! canConfirmPayment() || isProcessing || uploadingSlip
+                className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg
+                  ${loading || !!error || !canConfirmPayment() || isProcessing || uploadingSlip
                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-lime-500 to-emerald-600 text-white hover:shadow-lime-200 hover:scale-[1.02] active:scale-[0.98]'
                   }
                 `}
               >
-                {isProcessing || uploadingSlip ?  (
+                {isProcessing || uploadingSlip ? (
                   <>
-                    <Loader className="w-6 h-6 animate-spin" />
-                    {uploadingSlip ? 'กำลังอัพโหลดสลิป...' : 'กำลังประมวลผล... '}
+                    <Loader className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
+                    {uploadingSlip ? 'กำลังอัพโหลด...' : 'กำลังประมวลผล...'}
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-6 h-6" />
+                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
                     ยืนยันการชำระเงิน
                   </>
                 )}
@@ -855,7 +878,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
             </div>
 
             <div className="relative bg-black aspect-video">
-              {cameraError ?  (
+              {cameraError ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center p-6">
                   <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
                     <X className="w-8 h-8 text-red-400" />
@@ -890,7 +913,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
             <canvas ref={canvasRef} className="hidden" />
 
-            {! cameraError && (
+            {!cameraError && (
               <div className="p-6 bg-slate-100 flex items-center justify-center gap-4">
                 <button
                   onClick={handleCloseCamera}

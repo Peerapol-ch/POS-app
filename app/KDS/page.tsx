@@ -23,7 +23,8 @@ import {
   Timer,
   RefreshCw,
   Package,
-  CircleDot
+  CircleDot,
+  Check
 } from 'lucide-react'
 
 interface OrderItem {
@@ -72,20 +73,20 @@ export default function KitchenDisplay() {
   }, [])
 
   const loadMenuMap = useCallback(async () => {
-    if (menuMapRef.current. size > 0) return menuMapRef.current
-    const { data } = await supabase. from('menu_items').select('id, name')
+    if (menuMapRef.current.size > 0) return menuMapRef.current
+    const { data } = await supabase.from('menu_items').select('id, name')
     const map = new Map<number, string>()
-    data?. forEach((menu) => map.set(menu. id, menu.name))
+    data?.forEach((menu) => map.set(menu.id, menu.name))
     menuMapRef.current = map
     return map
   }, [])
 
   const loadOrders = useCallback(async (isSilent = false) => {
-    if (! isSilent) setLoading(true)
+    if (!isSilent) setLoading(true)
     if (isSilent) setRefreshing(true)
 
     try {
-      const [orderRes, itemRes, menuMap] = await Promise. all([
+      const [orderRes, itemRes, menuMap] = await Promise.all([
         supabase
           .from('orders')
           .select('id, order_id, table_id, status, total_amount, customer_count, payment_status, created_at, tables(table_number)')
@@ -101,23 +102,23 @@ export default function KitchenDisplay() {
 
       if (orderRes.error) throw orderRes.error
 
-      const ordersWithItems:  Order[] = (orderRes.data || [])
-        .map((order:  any) => ({
+      const ordersWithItems: Order[] = (orderRes.data || [])
+        .map((order: any) => ({
           id: order.id,
           order_id: order.order_id,
-          table_id: order. table_id,
-          status: order. status,
-          total_amount: order. total_amount || 0,
+          table_id: order.table_id,
+          status: order.status,
+          total_amount: order.total_amount || 0,
           customer_count: order.customer_count || 1,
           payment_status: order.payment_status || 'unpaid',
-          created_at: order. created_at,
+          created_at: order.created_at,
           table_number:  order.tables?.table_number || null,
           items: (itemRes.data || [])
-            .filter((item: any) => item.order_id === order. order_id)
+            .filter((item: any) => item.order_id === order.order_id)
             .map((item: any) => ({
-              ... item,
+              ...item,
               status: item.status || 'pending',
-              itemName: menuMap. get(item.menu_item_id) || `เมนู #${item.menu_item_id}`,
+              itemName: menuMap.get(item.menu_item_id) || `เมนู #${item.menu_item_id}`,
             }))
         }))
         .filter((order) => order.items.length > 0)
@@ -132,7 +133,7 @@ export default function KitchenDisplay() {
       setOrders(ordersWithItems)
       setError(null)
     } catch (err:  any) {
-      if (! isSilent) setError(err?. message || 'ไม่สามารถโหลดข้อมูลได้')
+      if (!isSilent) setError(err?.message || 'ไม่สามารถโหลดข้อมูลได้')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -144,7 +145,7 @@ export default function KitchenDisplay() {
   }, [])
 
   useEffect(() => {
-    if (! autoRefresh) return
+    if (!autoRefresh) return
     const interval = setInterval(() => loadOrders(true), 4000)
     return () => clearInterval(interval)
   }, [autoRefresh, loadOrders])
@@ -167,20 +168,20 @@ export default function KitchenDisplay() {
     } catch {}
   }, [])
 
-  const updateItemStatus = useCallback(async (itemId: number, newStatus: string, orderId:  string, orderDbId: number) => {
+  const updateItemStatus = useCallback(async (itemId: number, newStatus: string, orderId: string, orderDbId: number) => {
     setUpdatingItem(itemId)
 
     setOrders((prev) =>
       prev.map((order) => ({
         ...order,
         items: order.items.map((item) =>
-          item.id === itemId ?  { ...item, status: newStatus } : item
+          item.id === itemId ? { ...item, status: newStatus } : item
         ),
       }))
     )
 
     try {
-      await supabase. from('order_items').update({ status: newStatus }).eq('id', itemId)
+      await supabase.from('order_items').update({ status: newStatus }).eq('id', itemId)
 
       if (newStatus === 'cooking') {
         await supabase.from('orders').update({ status: 'cooking' }).eq('id', orderDbId)
@@ -189,46 +190,40 @@ export default function KitchenDisplay() {
       if (soundEnabled) playSound()
     } catch (err: any) {
       loadOrders(true)
-      alert(`เกิดข้อผิดพลาด:  ${err?. message}`)
+      alert(`เกิดข้อผิดพลาด: ${err?.message}`)
     } finally {
       setUpdatingItem(null)
     }
   }, [soundEnabled, playSound, loadOrders])
 
-  // ✅ แก้ไข submitOrder - เปลี่ยนสถานะโต๊ะเป็น Checkout
   const submitOrder = useCallback(async (orderDbId: number, orderIdText: string, tableId: number | null) => {
     setSendingOrder(orderDbId)
 
     setOrders((prev) => prev.filter((o) => o.id !== orderDbId))
 
     try {
-      // 1. อัพเดท order_items เป็น completed
       const { error: itemsError } = await supabase
-        . from('order_items')
+        .from('order_items')
         .update({ status: 'completed' })
         .eq('order_id', orderIdText)
 
       if (itemsError) throw itemsError
 
-      // 2. อัพเดท order เป็น served
       const { error: orderError } = await supabase
-        . from('orders')
+        .from('orders')
         .update({ status: 'served' })
         .eq('id', orderDbId)
 
       if (orderError) throw orderError
 
-      // 3. ✅ อัพเดทสถานะโต๊ะเป็น Checkout (ยกเว้นกลับบ้าน table_id = 9)
       if (tableId && tableId !== 9) {
         const { error: tableError } = await supabase
           .from('tables')
-          .update({ current_status: 'Checkout' })  // ✅ เปลี่ยนเป็น Checkout (ตัวพิมพ์ใหญ่ตาม enum)
+          .update({ current_status: 'Checkout' }) 
           .eq('id', tableId)
 
         if (tableError) {
           console.error('Table update error:', tableError)
-        } else {
-          console.log(`Table ${tableId} updated to Checkout`)
         }
       }
 
@@ -242,9 +237,9 @@ export default function KitchenDisplay() {
   }, [playSound, loadOrders])
 
   const getTimeElapsed = useCallback((createdAt: string) => {
-    const diff = Math.floor((Date. now() - new Date(createdAt).getTime()) / 1000)
-    if (diff < 0) return { text: '0s', seconds: diff, urgent: false }
-    if (diff < 60) return { text: `${diff}s`, seconds: diff, urgent: false }
+    const diff = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000)
+    if (diff < 0) return { text: '0m', seconds: diff, urgent: false }
+    if (diff < 60) return { text: '<1m', seconds: diff, urgent: false }
     if (diff < 600) return { text: `${Math.floor(diff / 60)}m`, seconds: diff, urgent: false }
     if (diff < 3600) return { text: `${Math.floor(diff / 60)}m`, seconds: diff, urgent: true }
     return { text: `${Math.floor(diff / 3600)}h`, seconds: diff, urgent: true }
@@ -264,11 +259,8 @@ export default function KitchenDisplay() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-100">
         <div className="text-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-stone-200 border-t-stone-500 rounded-full animate-spin mx-auto"></div>
-            <ChefHat className="w-6 h-6 text-stone-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </div>
-          <p className="text-base font-medium text-stone-500 mt-4">กำลังโหลด...</p>
+          <Loader className="w-12 h-12 text-stone-400 animate-spin mx-auto mb-4" />
+          <p className="text-stone-500 font-medium">Loading Kitchen Display...</p>
         </div>
       </main>
     )
@@ -278,317 +270,273 @@ export default function KitchenDisplay() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-100 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-sm max-w-md w-full text-center border border-stone-200">
-          <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-7 h-7 text-red-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-stone-800 mb-2">เกิดข้อผิดพลาด</h2>
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-stone-800 mb-2">Connection Error</h2>
           <p className="text-stone-500 mb-6 text-sm">{error}</p>
-          <button
-            onClick={() => loadOrders(false)}
-            className="w-full py-2. 5 bg-stone-800 hover:bg-stone-700 text-white rounded-xl font-medium transition-colors"
-          >
-            ลองใหม่
-          </button>
+          <button onClick={() => loadOrders(false)} className="w-full py-2.5 bg-stone-800 text-white rounded-xl font-medium">Try Again</button>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-stone-100">
-      {/* Header */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
-        <div className="px-4 lg:px-6 py-4">
-          {/* Top Row */}
-          <div className="flex items-center justify-between mb-4">
+    <main className="min-h-screen bg-stone-100/50 pb-20">
+      {/* Header & Stats Bar */}
+      <header className="bg-white border-b border-stone-200 sticky top-0 z-50 shadow-sm">
+        <div className="px-4 lg:px-6 py-3">
+          {/* Top Bar */}
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="bg-stone-100 p-2.5 rounded-xl">
-                <ChefHat className="w-6 h-6 text-stone-600" />
+              <div className="bg-stone-900 p-2 rounded-lg">
+                <ChefHat className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-stone-800">ห้องครัว</h1>
+                <h1 className="text-xl font-black text-stone-800 tracking-tight">KITCHEN</h1>
+                <p className="text-xs text-stone-500 font-medium -mt-1">Display System</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Time */}
-              <div className="hidden md:flex items-center gap-2 text-stone-600">
-                <Clock className="w-4 h-4 text-stone-400" />
-                <span className="text-sm font-mono font-medium">
+              <div className="hidden md:flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
+                <Clock className="w-4 h-4 text-stone-500" />
+                <span className="text-lg font-mono font-bold text-stone-700">
                   {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-
-              {/* Status */}
-              <div className={`flex items-center gap-1. 5 px-2.5 py-1. 5 rounded-lg text-xs font-medium ${
+              
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
                 refreshing ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
               }`}>
                 <CircleDot className={`w-3 h-3 ${refreshing ? 'animate-pulse' : ''}`} />
-                {refreshing ? 'กำลังซิงค์' : 'เชื่อมต่อแล้ว'}
+                {refreshing ? 'Syncing' : 'Online'}
               </div>
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-2 mb-4 overflow-x-auto">
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`flex items-center gap-1. 5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                soundEnabled
-                  ? 'bg-stone-100 text-stone-700'
-                  : 'bg-white text-stone-400 border border-stone-200'
-              }`}
-            >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> :  <VolumeX className="w-4 h-4" />}
-              <span className="hidden sm:inline">{soundEnabled ? 'เสียงเปิด' : 'เสียงปิด'}</span>
-            </button>
-
-            <button
-              onClick={() => setAutoRefresh(! autoRefresh)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                autoRefresh
-                  ? 'bg-stone-100 text-stone-700'
-                  : 'bg-white text-stone-400 border border-stone-200'
-              }`}
-            >
-              <RotateCw className={`w-4 h-4 ${autoRefresh ?  'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
-              <span className="hidden sm:inline">{autoRefresh ?  'อัตโนมัติ' : 'หยุดอัตโนมัติ'}</span>
-            </button>
-
-            <button
-              onClick={() => loadOrders(true)}
-              disabled={refreshing}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 text-sm font-medium transition-all disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' :  ''}`} />
-              <span className="hidden sm:inline">รีเฟรช</span>
-            </button>
-
-            <button
-              onClick={() => setShowMenuModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-stone-800 text-white hover:bg-stone-700 text-sm font-medium transition-all ml-auto"
-            >
-              <Monitor className="w-4 h-4" />
-              <span>จัดการเมนู</span>
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-4 gap-2">
-            <div className="bg-amber-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-amber-700">{stats.pending}</p>
-              <p className="text-xs text-amber-600 font-medium flex items-center justify-center gap-1">
-                <Clock className="w-3 h-3" /> รอทำ
-              </p>
+          {/* Action Bar & Stats */}
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            {/* Controls */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`p-2 rounded-lg transition-all border ${soundEnabled ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-400 border-stone-200'}`}
+              >
+                {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                className={`p-2 rounded-lg transition-all border ${autoRefresh ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-400 border-stone-200'}`}
+              >
+                <RotateCw className={`w-5 h-5 ${autoRefresh ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
+              </button>
+              <button
+                onClick={() => loadOrders(true)}
+                disabled={refreshing}
+                className="px-3 py-2 rounded-lg bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 text-sm font-bold flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+               <button
+                  onClick={() => setShowMenuModal(true)}
+                  className="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-bold flex items-center gap-2 shadow-sm"
+                >
+                  <Monitor className="w-4 h-4" />
+                  <span className="hidden sm:inline">Menu</span>
+                </button>
             </div>
-            <div className="bg-sky-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-sky-700">{stats.cooking}</p>
-              <p className="text-xs text-sky-600 font-medium flex items-center justify-center gap-1">
-                <Flame className="w-3 h-3" /> กำลังทำ
-              </p>
-            </div>
-            <div className="bg-emerald-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-emerald-700">{stats.completed}</p>
-              <p className="text-xs text-emerald-600 font-medium flex items-center justify-center gap-1">
-                <CheckCircle className="w-3 h-3" /> เสร็จ
-              </p>
-            </div>
-            <div className="bg-stone-100 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-stone-700">{stats.orders}</p>
-              <p className="text-xs text-stone-500 font-medium flex items-center justify-center gap-1">
-                <Package className="w-3 h-3" /> ออเดอร์
-              </p>
+
+            {/* Dashboard Stats - Responsive Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1 max-w-2xl w-full">
+              <div className="bg-amber-100 rounded-lg p-2 flex flex-col items-center justify-center border-b-4 border-amber-400">
+                <span className="text-2xl font-black text-amber-800 leading-none">{stats.pending}</span>
+                <span className="text-[10px] font-bold text-amber-700 uppercase">Pending</span>
+              </div>
+              <div className="bg-sky-100 rounded-lg p-2 flex flex-col items-center justify-center border-b-4 border-sky-400">
+                <span className="text-2xl font-black text-sky-800 leading-none">{stats.cooking}</span>
+                <span className="text-[10px] font-bold text-sky-700 uppercase">Cooking</span>
+              </div>
+              <div className="bg-emerald-100 rounded-lg p-2 flex flex-col items-center justify-center border-b-4 border-emerald-400">
+                <span className="text-2xl font-black text-emerald-800 leading-none">{stats.completed}</span>
+                <span className="text-[10px] font-bold text-emerald-700 uppercase">Done</span>
+              </div>
+              <div className="bg-stone-100 rounded-lg p-2 flex flex-col items-center justify-center border-b-4 border-stone-400">
+                <span className="text-2xl font-black text-stone-800 leading-none">{stats.orders}</span>
+                <span className="text-[10px] font-bold text-stone-600 uppercase">Tickets</span>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Orders Grid */}
-      <div className="p-4 lg:p-6 pb-24">
+      <div className="p-4 lg:p-6">
         {orders.length > 0 ? (
-          <div className="grid grid-cols-1 md: grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
             {orders.map((order) => {
               const hasPending = order.items.some((i) => !i.status || i.status === 'pending')
               const hasCooking = order.items.some((i) => i.status === 'cooking')
               const allCompleted = order.items.length > 0 && order.items.every((i) => i.status === 'completed')
-              const isTakeaway = order.table_id === 9 || ! order.table_id
+              const isTakeaway = order.table_id === 9 || !order.table_id
 
-              let cardBorder = 'border-emerald-200'
-              let headerBg = 'bg-emerald-50'
-              let statusBadge = 'bg-emerald-100 text-emerald-700'
-              let statusText = 'พร้อมส่ง'
+              // Card Status Styling
+              let statusColor = 'emerald'
               let StatusIcon = CheckCircle
-
+              let statusLabel = 'READY'
+              
               if (hasPending) {
-                cardBorder = 'border-amber-200'
-                headerBg = 'bg-amber-50'
-                statusBadge = 'bg-amber-100 text-amber-700'
-                statusText = 'รอทำ'
+                statusColor = 'amber'
                 StatusIcon = Clock
+                statusLabel = 'WAITING'
               } else if (hasCooking) {
-                cardBorder = 'border-sky-200'
-                headerBg = 'bg-sky-50'
-                statusBadge = 'bg-sky-100 text-sky-700'
-                statusText = 'กำลังทำ'
+                statusColor = 'sky'
                 StatusIcon = Flame
+                statusLabel = 'COOKING'
               }
+
+              // Tailwind classes construction
+              const borderClass = `border-${statusColor}-500`
+              const bgHeaderClass = `bg-${statusColor}-50`
+              const textHeaderClass = `text-${statusColor}-700`
+              const badgeClass = `bg-${statusColor}-100 text-${statusColor}-800`
 
               return (
                 <div
                   key={order.id}
-                  className={`bg-white rounded-2xl border-2 ${cardBorder} overflow-hidden shadow-sm hover:shadow-md transition-shadow`}
+                  className={`bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border-l-8 ${borderClass} flex flex-col h-full`}
                 >
-                  {/* Order Header */}
-                  <div className={`${headerBg} p-4`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wide">Order</p>
-                        <p className="text-lg font-bold text-stone-800">{order.order_id}</p>
-                      </div>
-                      <div className={`${statusBadge} px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1`}>
-                        <StatusIcon className="w-3 h-3" />
-                        {statusText}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`p-1. 5 rounded-lg ${isTakeaway ? 'bg-violet-100' : 'bg-teal-100'}`}>
-                          {isTakeaway ? (
-                            <Home className="w-4 h-4 text-violet-600" />
-                          ) : (
-                            <UtensilsCrossed className="w-4 h-4 text-teal-600" />
-                          )}
+                  {/* Card Header */}
+                  <div className={`p-3 border-b border-stone-100 ${bgHeaderClass} flex justify-between items-start`}>
+                    <div className="flex-1 min-w-0 mr-2">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${badgeClass}`}>
+                                {statusLabel}
+                            </span>
+                            <span className="text-xs font-mono text-stone-400">#{order.order_id.split('-').pop()}</span>
                         </div>
-                        <span className={`text-sm font-semibold ${isTakeaway ? 'text-violet-700' : 'text-teal-700'}`}>
-                          {isTakeaway ? 'กลับบ้าน' : `${order.table_number}`}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-stone-500">
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3. 5 h-3.5" />
-                          {order. customer_count}
-                        </span>
-                        <span className="font-semibold text-stone-700">฿{order.total_amount?. toFixed(0) || 0}</span>
-                      </div>
+                        <div className="flex items-center gap-2">
+                            <div className={`p-1.5 shrink-0 rounded-md ${isTakeaway ? 'bg-purple-100 text-purple-700' : 'bg-stone-800 text-white'}`}>
+                                {isTakeaway ? <Home className="w-4 h-4" /> : <UtensilsCrossed className="w-4 h-4" />}
+                            </div>
+                            <span className="text-xl font-black text-stone-800 break-words leading-tight">
+                                {isTakeaway ? 'Takeaway' : `Table ${order.table_number}`}
+                            </span>
+                        </div>
                     </div>
-
-                    {/* Submit Button */}
-                    {allCompleted && (
-                      <button
-                        onClick={() => submitOrder(order.id, order.order_id, order. table_id)}
-                        disabled={sendingOrder === order.id}
-                        className="w-full mt-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
-                      >
-                        {sendingOrder === order.id ? (
-                          <Loader className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4" />
-                        )}
-                        {sendingOrder === order. id ? 'กำลังส่ง...' : 'ส่งออเดอร์'}
-                      </button>
-                    )}
+                    
+                    <div className="text-right shrink-0">
+                         <div className="text-xs font-medium text-stone-500 mb-0.5">Time</div>
+                         {order.items.length > 0 && (
+                             (() => {
+                                 const timeInfo = getTimeElapsed(order.items[0].created_at)
+                                 return (
+                                     <div className={`text-lg font-black ${timeInfo.urgent ? 'text-red-500 animate-pulse' : 'text-stone-700'}`}>
+                                         {timeInfo.text}
+                                     </div>
+                                 )
+                             })()
+                         )}
+                    </div>
                   </div>
 
-                  {/* Items */}
-                  <div className="p-3 space-y-2 max-h-72 overflow-y-auto">
-                    {order.items. map((item) => {
+                  {/* Items List - Full height, no scroll constraints */}
+                  <div className="p-2 flex-1 flex flex-col gap-2">
+                    {order.items.map((item) => {
                       const itemStatus = item.status || 'pending'
-                      const timeInfo = getTimeElapsed(item.created_at)
-                      const isUpdating = updatingItem === item. id
-
-                      let itemBg = 'bg-emerald-50 border-emerald-100'
-                      let timeBg = 'bg-emerald-500'
-                      let buttonStyle = ''
-                      let buttonText = ''
-                      let showButton = false
-
+                      const isUpdating = updatingItem === item.id
+                      
+                      // Item Row Styling
+                      let rowBg = 'bg-white'
+                      let qtyColor = 'bg-stone-100 text-stone-600'
+                      
                       if (itemStatus === 'pending') {
-                        itemBg = timeInfo.urgent
-                          ? 'bg-red-50 border-red-100'
-                          :  'bg-amber-50 border-amber-100'
-                        timeBg = timeInfo.urgent ? 'bg-red-500' : 'bg-amber-500'
-                        buttonStyle = timeInfo.urgent
-                          ? 'bg-red-500 hover:bg-red-600'
-                          : 'bg-sky-500 hover:bg-sky-600'
-                        buttonText = 'เริ่มทำ'
-                        showButton = true
+                          rowBg = 'bg-white'
+                          qtyColor = 'bg-amber-100 text-amber-800'
                       } else if (itemStatus === 'cooking') {
-                        itemBg = 'bg-sky-50 border-sky-100'
-                        timeBg = 'bg-sky-500'
-                        buttonStyle = 'bg-emerald-500 hover:bg-emerald-600'
-                        buttonText = 'เสร็จแล้ว'
-                        showButton = true
+                          rowBg = 'bg-sky-50/50'
+                          qtyColor = 'bg-sky-100 text-sky-800'
+                      } else if (itemStatus === 'completed') {
+                          rowBg = 'bg-emerald-50/30 opacity-60 grayscale-[0.5]'
+                          qtyColor = 'bg-emerald-100 text-emerald-800'
                       }
 
                       return (
-                        <div key={item.id} className={`rounded-xl p-3 border ${itemBg} transition-all`}>
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex-1 min-w-0">
-                              <p className={`font-semibold text-sm truncate ${itemStatus === 'completed' ? 'text-stone-400 line-through' :  'text-stone-800'}`}>
-                                {item.itemName}
-                              </p>
-                              <div className="flex items-center gap-2 text-xs text-stone-500 mt-1">
-                                <span className="bg-white px-1. 5 py-0.5 rounded font-medium">x{item.quantity}</span>
-                                <span>฿{item. price}</span>
-                              </div>
-                            </div>
-                            <span className={`${timeBg} px-2 py-0.5 rounded text-white text-[10px] font-bold flex items-center gap-1`}>
-                              <Timer className="w-2. 5 h-2.5" />
-                              {timeInfo.text}
-                            </span>
+                        <div key={item.id} className={`flex gap-3 p-3 rounded-lg border border-stone-100 ${rowBg} transition-all`}>
+                          {/* Quantity Badge */}
+                          <div className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-lg text-lg font-black ${qtyColor}`}>
+                            x{item.quantity}
                           </div>
 
-                          {item.notes && (
-                            <div className="bg-yellow-50 border border-yellow-100 text-yellow-700 p-2 rounded-lg text-xs mb-2">
-                              📝 {item. notes}
-                            </div>
-                          )}
+                          {/* Item Details */}
+                          <div className="flex-1 min-w-0">
+                             <div className="flex justify-between items-start">
+                                 <p className="text-base font-bold text-stone-800 leading-tight break-words">
+                                     {item.itemName}
+                                 </p>
+                             </div>
+                             
+                             {/* Notes - High Contrast */}
+                             {item.notes && (
+                                 <div className="mt-1.5 inline-block bg-orange-100 border-l-4 border-orange-500 text-orange-800 text-xs font-bold px-2 py-1 rounded-r break-words max-w-full">
+                                     ⚠️ {item.notes}
+                                 </div>
+                             )}
+                          </div>
 
-                          {showButton && (
-                            <button
-                              onClick={() => updateItemStatus(item. id, itemStatus === 'pending' ?  'cooking' :  'completed', order.order_id, order.id)}
-                              disabled={isUpdating}
-                              className={`w-full py-2 ${buttonStyle} text-white rounded-lg font-semibold text-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-1. 5`}
-                            >
-                              {isUpdating ? (
-                                <Loader className="w-3. 5 h-3.5 animate-spin" />
-                              ) : itemStatus === 'pending' ? (
-                                <Flame className="w-3.5 h-3.5" />
-                              ) : (
-                                <CheckCircle className="w-3.5 h-3.5" />
-                              )}
-                              {isUpdating ? 'กำลังอัพเดท...' : buttonText}
-                            </button>
-                          )}
-
-                          {itemStatus === 'completed' && (
-                            <div className="flex items-center justify-center gap-1 py-1. 5 text-emerald-600 text-xs font-medium">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              เสร็จแล้ว
-                            </div>
-                          )}
+                          {/* Action Button */}
+                          <div className="shrink-0 flex items-center">
+                             {itemStatus !== 'completed' && (
+                                 <button
+                                     onClick={() => updateItemStatus(item.id, itemStatus === 'pending' ? 'cooking' : 'completed', order.order_id, order.id)}
+                                     disabled={isUpdating}
+                                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95
+                                        ${itemStatus === 'pending' 
+                                            ? 'bg-stone-100 text-stone-400 hover:bg-sky-500 hover:text-white hover:shadow-sky-200' 
+                                            : 'bg-sky-500 text-white hover:bg-emerald-500 hover:shadow-emerald-200'
+                                        }
+                                     `}
+                                 >
+                                     {isUpdating ? <Loader className="w-5 h-5 animate-spin" /> : 
+                                      itemStatus === 'pending' ? <Flame className="w-5 h-5" /> : <Check className="w-5 h-5" />
+                                     }
+                                 </button>
+                             )}
+                             {itemStatus === 'completed' && (
+                                 <div className="w-10 h-10 flex items-center justify-center text-emerald-500">
+                                     <CheckCircle className="w-6 h-6" />
+                                 </div>
+                             )}
+                          </div>
                         </div>
                       )
                     })}
                   </div>
+
+                  {/* Footer Actions */}
+                  {allCompleted && (
+                    <div className="p-3 bg-stone-50 border-t border-stone-100 mt-auto">
+                      <button
+                        onClick={() => submitOrder(order.id, order.order_id, order.table_id)}
+                        disabled={sendingOrder === order.id}
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl font-bold text-base shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 transition-all"
+                      >
+                        {sendingOrder === order.id ? (
+                          <> <Loader className="w-5 h-5 animate-spin" /> Sending... </>
+                        ) : (
+                          <> <Send className="w-5 h-5" /> SERVE ORDER </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
         ) : (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-stone-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Bell className="w-10 h-10 text-stone-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-stone-700 mb-1">ยังไม่มีออเดอร์</h3>
-              <p className="text-stone-400 text-sm">รอรับออเดอร์ใหม่... </p>
-              <div className="mt-4 flex items-center justify-center gap-2 text-stone-400">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                <span className="text-xs">ระบบพร้อมรับออเดอร์</span>
-              </div>
-            </div>
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-stone-300">
+            <Bell className="w-24 h-24 mb-4 opacity-20" />
+            <h3 className="text-2xl font-bold text-stone-400">All caught up!</h3>
+            <p className="text-stone-400">No active orders in the kitchen.</p>
           </div>
         )}
       </div>

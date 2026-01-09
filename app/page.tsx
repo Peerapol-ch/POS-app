@@ -79,7 +79,7 @@ function DashboardContent() {
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
       const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString()
 
-      const { data: tables, error: tablesError } = await supabase. from('tables').select('*')
+      const { data: tables, error: tablesError } = await supabase.from('tables').select('*')
       if (tablesError) throw tablesError
 
       const regularTables = (tables || []).filter((t) => {
@@ -87,13 +87,13 @@ function DashboardContent() {
         return !name.includes('กลับบ้าน') && !name.includes('takeaway')
       })
 
-      const vacantTables = regularTables.filter((t) => t.current_status?. toLowerCase() === 'vacant').length
+      const vacantTables = regularTables.filter((t) => t.current_status?.toLowerCase() === 'vacant').length
       const occupiedTables = regularTables.filter((t) => t.current_status?.toLowerCase() === 'occupied').length
 
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('*, tables(table_number)')
-        . gte('created_at', startOfDay)
+        .gte('created_at', startOfDay)
         .lt('created_at', endOfDay)
         .order('created_at', { ascending: false })
 
@@ -103,9 +103,9 @@ function DashboardContent() {
       const todayOrders = (orders || []).length
 
       const { data: orderItems, error: itemsError } = await supabase
-        . from('order_items')
+        .from('order_items')
         .select('*, menu_items(name, price)')
-        . gte('created_at', startOfDay)
+        .gte('created_at', startOfDay)
         .lt('created_at', endOfDay)
 
       if (itemsError) console.error('Items error:', itemsError)
@@ -113,13 +113,13 @@ function DashboardContent() {
       const menuStats:  { [key: string]: { name: string; quantity:  number; revenue: number } } = {}
 
       ;(orderItems || []).forEach((item) => {
-        const menuName = item.menu_items?. name || `Menu #${item.menu_item_id}`
-        const price = item.price || item.menu_items?. price || 0
+        const menuName = item.menu_items?.name || `Menu #${item.menu_item_id}`
+        const price = item.price || item.menu_items?.price || 0
 
         if (!menuStats[menuName]) {
           menuStats[menuName] = { name: menuName, quantity: 0, revenue: 0 }
         }
-        menuStats[menuName]. quantity += item.quantity || 1
+        menuStats[menuName].quantity += item.quantity || 1
         menuStats[menuName].revenue += price * (item.quantity || 1)
       })
 
@@ -129,7 +129,7 @@ function DashboardContent() {
 
       const recentOrders = (orders || []).slice(0, 5).map((order) => ({
         order_id: order.order_id,
-        table_number: order.tables?. table_number || 'กลับบ้าน',
+        table_number: order.tables?.table_number || 'กลับบ้าน',
         total: order.total_amount || 0,
         status:  order.status,
         created_at:  order.created_at,
@@ -141,7 +141,7 @@ function DashboardContent() {
           .from('ingredients')
           .select('id, current_stock, min_threshold')
 
-        if (! ingredientsError && ingredients) {
+        if (!ingredientsError && ingredients) {
           lowStockCount = ingredients.filter((i) => i.current_stock <= i.min_threshold).length
         }
       } catch (err) {
@@ -153,7 +153,7 @@ function DashboardContent() {
         const { data:  users, error: usersError } = await supabase.from('user').select('id')
 
         if (!usersError && users) {
-          userCount = users. length
+          userCount = users.length
         }
       } catch (err) {
         console.error('Error loading users:', err)
@@ -189,7 +189,7 @@ function DashboardContent() {
       setError(null)
     } catch (err:  any) {
       console.error('Dashboard error:', err)
-      setError(err?. message || 'ไม่สามารถโหลดข้อมูลได้')
+      setError(err?.message || 'ไม่สามารถโหลดข้อมูลได้')
     } finally {
       setLoading(false)
     }
@@ -201,7 +201,7 @@ function DashboardContent() {
   }
 
   const formatCurrency = (amount:  number) => {
-    return new Intl. NumberFormat('th-TH', {
+    return new Intl.NumberFormat('th-TH', {
       style: 'currency',
       currency: 'THB',
       minimumFractionDigits: 0,
@@ -209,7 +209,7 @@ function DashboardContent() {
   }
 
   const formatTime = (date: Date) => {
-    return date. toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   }
 
   const formatDate = (date:  Date) => {
@@ -225,7 +225,7 @@ function DashboardContent() {
   }
 
   const getStatusColor = (status:  string) => {
-    switch (status?. toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'pending': 
         return 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
       case 'cooking':
@@ -389,7 +389,7 @@ function DashboardContent() {
   ]
 
   // กรองเฉพาะปุ่มที่ผู้ใช้มีสิทธิ์
-  const visibleButtons = allQuickButtons.filter((btn) => canAccess(btn. page))
+  const visibleButtons = allQuickButtons.filter((btn) => canAccess(btn.page))
 
   // คำนวณจำนวน columns
   const gridCols = Math.min(visibleButtons.length, 4)
@@ -428,13 +428,15 @@ function DashboardContent() {
             <div className="flex items-center gap-3">
               {/* User Info */}
               {user && (
-                <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-4 py-3 border border-white/20 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="hidden sm:block">
-                    <p className="text-white font-bold text-sm">{user.Name}</p>
-                    <p className="text-emerald-200 text-xs">{getRoleLabel(user.role)}</p>
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-4 py-3 border border-white/20 flex items-center gap-3 flex-1 md:flex-none justify-between md:justify-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-white font-bold text-sm">{user.Name}</p>
+                        <p className="text-emerald-200 text-xs">{getRoleLabel(user.role)}</p>
+                    </div>
                   </div>
                   <button
                     onClick={handleLogout}
@@ -446,8 +448,8 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Live Clock */}
-              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-3 border border-white/20">
+              {/* Live Clock - Hidden on small mobile to save space */}
+              <div className="hidden sm:block bg-white/10 backdrop-blur-xl rounded-2xl p-3 border border-white/20">
                 <div className="text-center">
                   <div className="text-2xl md:text-3xl font-black text-white font-mono tracking-wider">
                     {formatTime(currentTime)}
@@ -466,7 +468,7 @@ function DashboardContent() {
       <div className="relative max-w-6xl mx-auto px-4 -mt-4 pb-12">
         {/* Sales Hero Card - แสดงเฉพาะ owner */}
         {isOwner && (
-          <div className="relative overflow-hidden bg-gradient-to-br from-white to-slate-50 rounded-3xl shadow-2xl border border-slate-200/50 p-6 md:p-8 mb-6">
+          <div className="relative overflow-hidden bg-gradient-to-br from-white to-slate-50 rounded-3xl shadow-2xl border border-slate-200/50 p-5 md:p-8 mb-6">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50"></div>
             <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full translate-y-1/2 -translate-x-1/2 opacity-50"></div>
 
@@ -486,7 +488,7 @@ function DashboardContent() {
                     </p>
                     <div className="flex items-baseline gap-3">
                       <span className="text-4xl md:text-5xl font-black bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                        {formatCurrency(data?. todaySales || 0)}
+                        {formatCurrency(data?.todaySales || 0)}
                       </span>
                     </div>
                   </div>
@@ -509,8 +511,8 @@ function DashboardContent() {
                 </div>
               </div>
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-4 gap-4">
+              {/* Stats Grid - Responsive grid-cols-2 for mobile */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                   <ShoppingBag className="w-6 h-6 mb-2 opacity-80" />
@@ -518,21 +520,20 @@ function DashboardContent() {
                   <p className="text-blue-100 text-xs font-medium">ออเดอร์</p>
                 </div>
 
-                <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-lg hover: shadow-xl transition-all hover:scale-[1.02]">
+                <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                   <CheckCircle className="w-6 h-6 mb-2 opacity-80" />
                   <p className="text-2xl font-black">{data?.vacantTables || 0}</p>
                   <p className="text-emerald-100 text-xs font-medium">โต๊ะว่าง</p>
                 </div>
 
-                <div className="group relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 text-white shadow-lg hover: shadow-xl transition-all hover:scale-[1.02]">
+                <div className="group relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                   <Users className="w-6 h-6 mb-2 opacity-80" />
                   <p className="text-2xl font-black">{data?.occupiedTables || 0}</p>
                   <p className="text-orange-100 text-xs font-medium">โต๊ะไม่ว่าง</p>
                 </div>
 
-                {/* ✅ เพิ่มจำนวนลูกค้า */}
                 <div className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                   <UserCircle className="w-6 h-6 mb-2 opacity-80" />
@@ -547,16 +548,16 @@ function DashboardContent() {
         {/* Simple Stats for non-owner */}
         {!isOwner && (
           <div className="bg-white/10 backdrop-blur rounded-2xl p-6 mb-6 border border-white/20">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+              <div className="p-2">
                 <p className="text-3xl font-black text-white">{data?.todayOrders || 0}</p>
                 <p className="text-slate-300 text-sm">ออเดอร์วันนี้</p>
               </div>
-              <div>
+              <div className="p-2 border-t sm:border-t-0 sm:border-l border-white/10">
                 <p className="text-3xl font-black text-emerald-400">{data?.vacantTables || 0}</p>
                 <p className="text-slate-300 text-sm">โต๊ะว่าง</p>
               </div>
-              <div>
+              <div className="p-2 border-t sm:border-t-0 sm:border-l border-white/10">
                 <p className="text-3xl font-black text-orange-400">{data?. occupiedTables || 0}</p>
                 <p className="text-slate-300 text-sm">โต๊ะไม่ว่าง</p>
               </div>
@@ -566,16 +567,16 @@ function DashboardContent() {
 
         {/* Content Grid - แสดงเฉพาะ owner */}
         {isOwner && (
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div className="grid lg:grid-cols-2 gap-6 mb-6">
             {/* Top Menu */}
-            <div className="bg-white/95 backdrop-blur rounded-3xl shadow-xl border border-slate-200/50 overflow-hidden">
-              <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-5">
+            <div className="bg-white/95 backdrop-blur rounded-3xl shadow-xl border border-slate-200/50 overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-4 md:p-5">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 p-2 rounded-xl">
                     <Flame className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
                       เมนูขายดี
                       <Sparkles className="w-5 h-5 text-yellow-200" />
                     </h2>
@@ -584,16 +585,16 @@ function DashboardContent() {
                 </div>
               </div>
 
-              <div className="p-5">
+              <div className="p-4 md:p-5 flex-1">
                 {data?.topMenuItems && data.topMenuItems.length > 0 ?  (
                   <div className="space-y-3">
-                    {data. topMenuItems.map((item, index) => (
+                    {data.topMenuItems.map((item, index) => (
                       <div
                         key={item.name}
-                        className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 hover:border-orange-200 hover:shadow-md transition-all group"
+                        className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 hover:border-orange-200 hover:shadow-md transition-all group"
                       >
                         <div
-                          className={`relative w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg text-white shadow-lg ${
+                          className={`relative w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center font-black text-lg text-white shadow-lg shrink-0 ${
                             index === 0
                               ? 'bg-gradient-to-br from-yellow-400 to-amber-500'
                               : index === 1
@@ -603,17 +604,17 @@ function DashboardContent() {
                               : 'bg-gradient-to-br from-slate-300 to-slate-400'
                           }`}
                         >
-                          {index === 0 && <Award className="w-6 h-6" />}
+                          {index === 0 && <Award className="w-5 h-5 md:w-6 md:h-6" />}
                           {index !== 0 && index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-slate-800 truncate group-hover:text-orange-600 transition-colors">
+                          <p className="font-bold text-sm md:text-base text-slate-800 truncate group-hover:text-orange-600 transition-colors">
                             {item.name}
                           </p>
-                          <p className="text-sm text-slate-500">{formatCurrency(item.revenue)}</p>
+                          <p className="text-xs md:text-sm text-slate-500">{formatCurrency(item.revenue)}</p>
                         </div>
-                        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 rounded-xl shadow-md">
-                          <span className="text-lg font-black text-white">{item.quantity}</span>
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-1.5 md:px-4 md:py-2 rounded-xl shadow-md shrink-0">
+                          <span className="text-base md:text-lg font-black text-white">{item.quantity}</span>
                         </div>
                       </div>
                     ))}
@@ -630,49 +631,49 @@ function DashboardContent() {
             </div>
 
             {/* Recent Orders */}
-            <div className="bg-white/95 backdrop-blur rounded-3xl shadow-xl border border-slate-200/50 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-5">
+            <div className="bg-white/95 backdrop-blur rounded-3xl shadow-xl border border-slate-200/50 overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="bg-white/20 p-2 rounded-xl">
                       <Clock className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-white">ออเดอร์ล่าสุด</h2>
+                      <h2 className="text-lg md:text-xl font-bold text-white">ออเดอร์ล่าสุด</h2>
                       <p className="text-blue-100 text-sm">อัพเดทแบบเรียลไทม์</p>
                     </div>
                   </div>
                   <Link
                     href="/KDS"
-                    className="flex items-center gap-2 bg-white/20 hover: bg-white/30 px-4 py-2 rounded-xl transition-colors"
+                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 md:px-4 md:py-2 rounded-xl transition-colors"
                   >
-                    <span className="text-white text-sm font-medium">ดูทั้งหมด</span>
-                    <ArrowRight className="w-4 h-4 text-white" />
+                    <span className="text-white text-xs md:text-sm font-medium">ดูทั้งหมด</span>
+                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 text-white" />
                   </Link>
                 </div>
               </div>
 
-              <div className="p-5">
+              <div className="p-4 md:p-5 flex-1">
                 {data?.recentOrders && data.recentOrders.length > 0 ? (
                   <div className="space-y-3">
                     {data.recentOrders.map((order) => (
                       <div
                         key={order.order_id}
-                        className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 hover: border-blue-200 hover:shadow-md transition-all"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all gap-2"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-2xl">
+                        <div className="flex items-center gap-3 md:gap-4">
+                          <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-xl flex items-center justify-center text-xl md:text-2xl shrink-0">
                             {String(order.table_number).includes('กลับบ้าน') ? '🏠' : '🪑'}
                           </div>
-                          <div>
-                            <p className="font-mono font-bold text-slate-800">{order.order_id}</p>
-                            <div className="flex items-center gap-2 text-sm text-slate-500">
-                              <Timer className="w-3 h-3" />
+                          <div className="min-w-0">
+                            <p className="font-mono font-bold text-sm md:text-base text-slate-800 truncate">{order.order_id}</p>
+                            <div className="flex items-center gap-2 text-xs md:text-sm text-slate-500">
+                              <Timer className="w-3 h-3 md:w-3.5 md:h-3.5" />
                               <span>{getTimeAgo(order.created_at)}</span>
                             </div>
                           </div>
                         </div>
-                        <span className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm ${getStatusColor(order. status)}`}>
+                        <span className={`self-start sm:self-center px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-xs font-bold shadow-sm ${getStatusColor(order.status)}`}>
                           {getStatusText(order.status)}
                         </span>
                       </div>
@@ -699,12 +700,12 @@ function DashboardContent() {
               <Link
                 key={btn.href}
                 href={btn.href}
-                className={`group relative overflow-hidden bg-gradient-to-br ${btn.gradient} rounded-3xl p-5 shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02]`}
+                className={`group relative overflow-hidden bg-gradient-to-br ${btn.gradient} rounded-3xl p-4 md:p-5 shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02]`}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                 {btn.badge !== undefined && btn.badge > 0 && (
                   <div
-                    className={`absolute top-2 right-2 ${btn.badgeColor} text-white text-xs font-bold px-2 py-0.5 rounded-full ${
+                    className={`absolute top-2 right-2 ${btn.badgeColor} text-white text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full ${
                       btn.badgeColor === 'bg-red-500' ? 'animate-pulse' : ''
                     }`}
                   >

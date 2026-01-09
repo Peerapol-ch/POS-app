@@ -157,15 +157,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Footer */}
-          <div className="px-8 pb-8">
-            <div className="pt-6 border-t border-white/10 text-center">
-              <p className="text-white/40 text-xs">
-                © 2024 ร้านไก่ย่างพังโคน - POS System
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </main>
