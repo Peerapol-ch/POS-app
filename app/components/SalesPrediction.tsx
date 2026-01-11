@@ -65,13 +65,13 @@ interface SalesPredictionProps {
 const thaiDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
 
 const formatCurrency = (amount: number) => {
-  return new Intl. NumberFormat('th-TH', {
+  return new Intl.NumberFormat('th-TH', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
 }
 
-const formatHour = (hour: number) => `${hour. toString().padStart(2, '0')}:00`
+const formatHour = (hour: number) => `${hour.toString().padStart(2, '0')}:00`
 
 export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionProps) {
   const [loading, setLoading] = useState(false)
@@ -86,9 +86,9 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
   useEffect(() => {
     if (isOpen) {
-      document. body.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
     } else {
-      document.body.style. overflow = 'unset'
+      document.body.style.overflow = 'unset'
     }
     return () => {
       document.body.style.overflow = 'unset'
@@ -100,12 +100,12 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
     try {
       const endDate = new Date()
       const startDate = new Date()
-      startDate. setDate(startDate.getDate() - 90)
+      startDate.setDate(startDate.getDate() - 90)
 
       const { data:  historicalData, error } = await supabase
         .from('orders')
         .select('total_amount, customer_count, created_at')
-        . gte('created_at', startDate. toISOString())
+        .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())
         .in('status', ['served', 'completed'])
 
@@ -126,7 +126,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
     for (let i = 0; i < 7; i++) {
       dayStats[i] = { revenues: [], orders:  [], count: 0, hourlyOrders: {} }
-      for (let h = 0; h < 24; h++) dayStats[i]. hourlyOrders[h] = 0
+      for (let h = 0; h < 24; h++) dayStats[i].hourlyOrders[h] = 0
     }
     for (let i = 0; i < 24; i++) {
       hourStats[i] = { orders: 0, revenue: 0, count: 0 }
@@ -146,17 +146,17 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
       dailyTotals[dateKey].total += order.total_amount || 0
       dailyTotals[dateKey].orders += 1
 
-      hourStats[hour]. orders += 1
-      hourStats[hour].revenue += order. total_amount || 0
+      hourStats[hour].orders += 1
+      hourStats[hour].revenue += order.total_amount || 0
       hourStats[hour].count += 1
 
       dayStats[dayOfWeek].hourlyOrders[hour] = (dayStats[dayOfWeek].hourlyOrders[hour] || 0) + 1
     })
 
     Object.values(dailyTotals).forEach((day) => {
-      dayStats[day.dayOfWeek].revenues.push(day. total)
-      dayStats[day.dayOfWeek].orders.push(day. orders)
-      dayStats[day. dayOfWeek]. count += 1
+      dayStats[day.dayOfWeek].revenues.push(day.total)
+      dayStats[day.dayOfWeek].orders.push(day.orders)
+      dayStats[day.dayOfWeek].count += 1
     })
 
     const timeSlotRanges = [
@@ -198,7 +198,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
       const stats = dayStats[i]
       if (stats.count > 0) {
         const avgRevenue = stats.revenues.reduce((a, b) => a + b, 0) / stats.count
-        const avgOrders = stats. orders.reduce((a, b) => a + b, 0) / stats.count
+        const avgOrders = stats.orders.reduce((a, b) => a + b, 0) / stats.count
 
         let peakHour = 0
         let maxOrders = 0
@@ -217,7 +217,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
         else bestTimeSlot = 'ดึก'
 
         const midPoint = Math.floor(stats.revenues.length / 2)
-        const firstAvg = stats.revenues. slice(0, midPoint).reduce((a, b) => a + b, 0) / (midPoint || 1)
+        const firstAvg = stats.revenues.slice(0, midPoint).reduce((a, b) => a + b, 0) / (midPoint || 1)
         const secondAvg = stats.revenues.slice(midPoint).reduce((a, b) => a + b, 0) / (stats.revenues.length - midPoint || 1)
 
         let trend:  'up' | 'down' | 'stable' = 'stable'
@@ -236,36 +236,36 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
       }
     }
 
-    dayPredictions.sort((a, b) => b.avgRevenue - a. avgRevenue)
+    dayPredictions.sort((a, b) => b.avgRevenue - a.avgRevenue)
     const bestDays = dayPredictions.slice(0, 3)
 
     const today = new Date()
     let nextBestDate = new Date(today)
     const bestDayOfWeek = bestDays[0]?.dayOfWeek ??  0
 
-    while (nextBestDate. getDay() !== bestDayOfWeek || nextBestDate <= today) {
-      nextBestDate. setDate(nextBestDate.getDate() + 1)
+    while (nextBestDate.getDay() !== bestDayOfWeek || nextBestDate <= today) {
+      nextBestDate.setDate(nextBestDate.getDate() + 1)
     }
 
     const peakHours = Object.entries(hourStats)
-      .map(([hour, stats]) => ({ hour:  parseInt(hour), avgOrders: stats. count > 0 ? stats.orders / totalDays : 0 }))
+      .map(([hour, stats]) => ({ hour:  parseInt(hour), avgOrders: stats.count > 0 ? stats.orders / totalDays : 0 }))
       .filter((h) => h.avgOrders > 0)
-      .sort((a, b) => b.avgOrders - a. avgOrders)
+      .sort((a, b) => b.avgOrders - a.avgOrders)
       .slice(0, 5)
 
-    const hourlyPattern = Object.entries(hourStats).map(([h, s]) => ({ hour: parseInt(h), orders: s. orders / totalDays }))
+    const hourlyPattern = Object.entries(hourStats).map(([h, s]) => ({ hour: parseInt(h), orders: s.orders / totalDays }))
     const sortedHours = hourlyPattern.filter((h) => h.orders > 0).sort((a, b) => b.orders - a.orders)
     const busiestHour = sortedHours[0] || { hour: 12, orders: 0 }
     const slowestHour = sortedHours[sortedHours.length - 1] || { hour: 6, orders: 0 }
 
-    const weekendRevenues = [... dayStats[0].revenues, ...dayStats[6].revenues]
-    const weekdayRevenues = [1, 2, 3, 4, 5]. flatMap((d) => dayStats[d]. revenues)
+    const weekendRevenues = [...dayStats[0].revenues, ...dayStats[6].revenues]
+    const weekdayRevenues = [1, 2, 3, 4, 5].flatMap((d) => dayStats[d].revenues)
     const weekendAvg = weekendRevenues.length > 0 ?  weekendRevenues.reduce((a, b) => a + b, 0) / weekendRevenues.length :  0
-    const weekdayAvg = weekdayRevenues.length > 0 ? weekdayRevenues.reduce((a, b) => a + b, 0) / weekdayRevenues. length : 0
+    const weekdayAvg = weekdayRevenues.length > 0 ? weekdayRevenues.reduce((a, b) => a + b, 0) / weekdayRevenues.length : 0
 
     const insights:  string[] = []
     const totalRevenue = data.reduce((sum, o) => sum + (o.total_amount || 0), 0)
-    const avgOrderValue = data. length > 0 ?  totalRevenue / data. length : 0
+    const avgOrderValue = data.length > 0 ?  totalRevenue / data.length : 0
 
     if (bestDays.length > 0) {
       insights.push(`วัน${bestDays[0].dayName}เป็นวันที่ขายดีที่สุด เฉลี่ย ฿${formatCurrency(bestDays[0].avgRevenue)}/วัน`)
@@ -275,15 +275,15 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
     }
     const bestSlot = timeSlots.reduce((max, s) => s.orders > max.orders ?  s : max, timeSlots[0])
     if (bestSlot) {
-      insights. push(`ช่วง${bestSlot.name} (${bestSlot. hours}) ขายดีที่สุด ${bestSlot.percentage. toFixed(0)}%`)
+      insights.push(`ช่วง${bestSlot.name} (${bestSlot.hours}) ขายดีที่สุด ${bestSlot.percentage.toFixed(0)}%`)
     }
     if (weekendAvg > weekdayAvg * 1.1) {
-      insights. push(`วันหยุดขายดีกว่าวันธรรมดา ${(((weekendAvg / weekdayAvg) - 1) * 100).toFixed(0)}%`)
+      insights.push(`วันหยุดขายดีกว่าวันธรรมดา ${(((weekendAvg / weekdayAvg) - 1) * 100).toFixed(0)}%`)
     } else if (weekdayAvg > weekendAvg * 1.1) {
       insights.push(`วันธรรมดาขายดีกว่าวันหยุด ${(((weekdayAvg / weekendAvg) - 1) * 100).toFixed(0)}%`)
     }
     if (avgOrderValue > 0) {
-      insights. push(`ยอดเฉลี่ยต่อบิล ฿${formatCurrency(avgOrderValue)}`)
+      insights.push(`ยอดเฉลี่ยต่อบิล ฿${formatCurrency(avgOrderValue)}`)
     }
 
     return {
@@ -296,17 +296,21 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
       averageOrderValue:  avgOrderValue,
       busiestHour,
       slowestHour,
-      totalOrders: data. length,
+      totalOrders: data.length,
       totalRevenue,
       analyzedDays:  totalDays
     }
   }
 
-  if (! isOpen) return null
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm">
-      <div className="absolute inset-2 sm:inset-4 lg:inset-8 bg-stone-50 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      {/* Modified Container:
+        - Mobile: inset-0 (full screen)
+        - Tablet/Desktop: inset-4 / inset-8 (popup style)
+      */}
+      <div className="absolute inset-0 sm:inset-4 lg:inset-8 bg-stone-50 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         
         {/* Header */}
         <div className="bg-white border-b border-stone-200 p-4 lg:p-5 flex-shrink-0">
@@ -317,7 +321,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-stone-800">คาดการณ์ยอดขาย</h2>
-                <p className="text-xs text-stone-400">วิเคราะห์จากข้อมูล {prediction?. analyzedDays || 0} วัน</p>
+                <p className="text-xs text-stone-400">วิเคราะห์จากข้อมูล {prediction?.analyzedDays || 0} วัน</p>
               </div>
             </div>
 
@@ -329,8 +333,8 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 mt-4 bg-stone-100 p-1 rounded-xl">
+          {/* Tabs - Scrollable on very small screens */}
+          <div className="flex gap-1 mt-4 bg-stone-100 p-1 rounded-xl overflow-x-auto">
             {[
               { id:  'overview', label: 'ภาพรวม', icon: Target },
               { id: 'days', label: 'รายวัน', icon:  Calendar },
@@ -342,7 +346,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1. 5 ${
+                  className={`flex-1 min-w-[80px] py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === tab.id
                       ? 'bg-white text-stone-800 shadow-sm'
                       : 'text-stone-500 hover:text-stone-700'
@@ -350,6 +354,8 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
+                  {/* Show Label on mobile if active, or just icon? Keeping text hidden on very small screens for cleanliness */}
+                  <span className="sm:hidden text-xs">{tab.label}</span> 
                 </button>
               )
             })}
@@ -357,7 +363,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-4 lg:p-6">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 sm:pb-6">
           {loading ?  (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
@@ -369,9 +375,10 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
             <>
               {/* Overview Tab */}
               {activeTab === 'overview' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                // Added md:grid-cols-2 for tablets
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                   {/* Next Best Day Card */}
-                  <div className="lg:col-span-1">
+                  <div className="md:col-span-2 lg:col-span-1">
                     <div className="bg-white rounded-2xl p-5 border border-stone-200 h-full">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
@@ -381,7 +388,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                       </div>
                       
                       <div className="mb-4">
-                        <p className="text-2xl font-bold text-stone-800">
+                        <p className="text-xl md:text-2xl font-bold text-stone-800">
                           {prediction.nextBestDay.date.toLocaleDateString('th-TH', { weekday: 'long' })}
                         </p>
                         <p className="text-stone-500 text-sm">
@@ -396,7 +403,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
                       <div className="pt-4 border-t border-stone-100">
                         <p className="text-xs text-stone-400 mb-1">คาดการณ์รายได้</p>
-                        <p className="text-3xl font-bold text-emerald-600">฿{formatCurrency(prediction.nextBestDay.prediction)}</p>
+                        <p className="text-2xl md:text-3xl font-bold text-emerald-600">฿{formatCurrency(prediction.nextBestDay.prediction)}</p>
                       </div>
                     </div>
                   </div>
@@ -423,10 +430,10 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="font-semibold text-stone-800">{day.dayName}</p>
-                                {day.trend === 'up' && <TrendingUp className="w-3. 5 h-3.5 text-emerald-500" />}
+                                {day.trend === 'up' && <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />}
                                 {day.trend === 'down' && <TrendingDown className="w-3.5 h-3.5 text-red-400" />}
                               </div>
-                              <p className="text-xs text-stone-400">{day.avgOrders. toFixed(0)} ออเดอร์</p>
+                              <p className="text-xs text-stone-400">{day.avgOrders.toFixed(0)} ออเดอร์</p>
                             </div>
                             <div className="text-right">
                               <p className="font-semibold text-stone-800">฿{formatCurrency(day.avgRevenue)}</p>
@@ -445,11 +452,11 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-sky-50 rounded-xl p-3 text-center">
                           <p className="text-xs text-stone-500 mb-1">วันธรรมดา</p>
-                          <p className="font-bold text-sky-700">฿{formatCurrency(prediction.weekdayVsWeekend. weekday)}</p>
+                          <p className="font-bold text-sky-700 text-sm md:text-base">฿{formatCurrency(prediction.weekdayVsWeekend.weekday)}</p>
                         </div>
                         <div className="bg-violet-50 rounded-xl p-3 text-center">
                           <p className="text-xs text-stone-500 mb-1">วันหยุด</p>
-                          <p className="font-bold text-violet-700">฿{formatCurrency(prediction.weekdayVsWeekend.weekend)}</p>
+                          <p className="font-bold text-violet-700 text-sm md:text-base">฿{formatCurrency(prediction.weekdayVsWeekend.weekend)}</p>
                         </div>
                       </div>
                     </div>
@@ -470,7 +477,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                             <Clock className="w-4 h-4 text-sky-500" />
                             <span className="text-sm text-stone-600">ชั่วโมงขายดี</span>
                           </div>
-                          <span className="font-semibold text-stone-800">{formatHour(prediction.busiestHour. hour)}</span>
+                          <span className="font-semibold text-stone-800">{formatHour(prediction.busiestHour.hour)}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -487,14 +494,14 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
               {/* Days Tab */}
               {activeTab === 'days' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6">
                   {/* Next Best Day */}
                   <div className="bg-white rounded-2xl p-5 border border-stone-200">
                     <div className="flex items-center gap-2 mb-4">
                       <Zap className="w-5 h-5 text-amber-500" />
                       <span className="font-semibold text-stone-800">วันขายดีถัดไป</span>
                     </div>
-                    <p className="text-2xl font-bold text-stone-800 mb-1">
+                    <p className="text-xl md:text-2xl font-bold text-stone-800 mb-1">
                       {prediction.nextBestDay.date.toLocaleDateString('th-TH', { weekday: 'long' })}
                     </p>
                     <p className="text-stone-500 mb-4">
@@ -503,11 +510,11 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-stone-50 rounded-xl p-3">
                         <p className="text-xs text-stone-400 mb-1">คาดการณ์รายได้</p>
-                        <p className="text-xl font-bold text-emerald-600">฿{formatCurrency(prediction.nextBestDay.prediction)}</p>
+                        <p className="text-lg md:text-xl font-bold text-emerald-600">฿{formatCurrency(prediction.nextBestDay.prediction)}</p>
                       </div>
                       <div className="bg-stone-50 rounded-xl p-3">
                         <p className="text-xs text-stone-400 mb-1">ช่วงขายดี</p>
-                        <p className="text-xl font-bold text-stone-800">{formatHour(prediction.nextBestDay.peakHour)}</p>
+                        <p className="text-lg md:text-xl font-bold text-stone-800">{formatHour(prediction.nextBestDay.peakHour)}</p>
                       </div>
                     </div>
                   </div>
@@ -531,18 +538,18 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-semibold text-stone-800">{day.dayName}</p>
                               {day.trend === 'up' && <TrendingUp className="w-4 h-4 text-emerald-500" />}
-                              {day. trend === 'down' && <TrendingDown className="w-4 h-4 text-red-400" />}
+                              {day.trend === 'down' && <TrendingDown className="w-4 h-4 text-red-400" />}
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-stone-400">
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs text-stone-400">
                               <span>{day.avgOrders.toFixed(0)} ออเดอร์</span>
-                              <Minus className="w-3 h-3" />
+                              <Minus className="hidden md:block w-3 h-3" />
                               <span>ช่วง{day.bestTimeSlot}</span>
-                              <Minus className="w-3 h-3" />
-                              <span>Peak {formatHour(day. peakHour)}</span>
+                              <Minus className="hidden md:block w-3 h-3" />
+                              <span>Peak {formatHour(day.peakHour)}</span>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-lg text-stone-800">฿{formatCurrency(day.avgRevenue)}</p>
+                            <p className="font-bold text-base md:text-lg text-stone-800">฿{formatCurrency(day.avgRevenue)}</p>
                             <p className="text-xs text-stone-400">เฉลี่ย/วัน</p>
                           </div>
                         </div>
@@ -554,7 +561,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
               {/* Hours Tab */}
               {activeTab === 'hours' && (
-                <div className="grid grid-cols-1 lg: grid-cols-2 gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
                   {/* Time Slots */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-stone-800 flex items-center gap-2">
@@ -573,7 +580,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <span className="font-semibold text-stone-800">{slot.name}</span>
                                     <span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded">{slot.hours}</span>
                                     {index === 0 && (
@@ -601,13 +608,13 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                     <div className="bg-white rounded-2xl p-4 border border-stone-200">
                       <h3 className="font-semibold text-stone-800 mb-4">ชั่วโมงยอดนิยม</h3>
                       <div className="flex flex-wrap gap-2">
-                        {prediction.peakHours. slice(0, 5).map((hour, index) => (
-                          <div key={hour.hour} className={`px-4 py-3 rounded-xl ${
+                        {prediction.peakHours.slice(0, 5).map((hour, index) => (
+                          <div key={hour.hour} className={`px-4 py-3 rounded-xl flex-grow md:flex-grow-0 ${
                             index === 0
                               ? 'bg-stone-800 text-white'
                               :  'bg-stone-100 text-stone-600'
                           }`}>
-                            <p className="font-bold text-lg">{formatHour(hour. hour)}</p>
+                            <p className="font-bold text-lg">{formatHour(hour.hour)}</p>
                             <p className={`text-sm ${index === 0 ?  'text-stone-300' : 'text-stone-400'}`}>
                               {hour.avgOrders.toFixed(1)} ออเดอร์
                             </p>
@@ -620,7 +627,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                       <div className="bg-emerald-50 rounded-xl p-4 text-center border border-emerald-100">
                         <Activity className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                         <p className="text-xs text-stone-500 mb-1">ชั่วโมงขายดีสุด</p>
-                        <p className="text-xl font-bold text-emerald-700">{formatHour(prediction.busiestHour. hour)}</p>
+                        <p className="text-xl font-bold text-emerald-700">{formatHour(prediction.busiestHour.hour)}</p>
                       </div>
                       <div className="bg-stone-100 rounded-xl p-4 text-center border border-stone-200">
                         <Moon className="w-8 h-8 text-stone-400 mx-auto mb-2" />
@@ -641,9 +648,9 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
               {/* Insights Tab */}
               {activeTab === 'insights' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                   {/* Insights List */}
-                  <div className="lg:col-span-2 space-y-3">
+                  <div className="md:col-span-2 space-y-3">
                     <h3 className="font-semibold text-stone-800 flex items-center gap-2">
                       <Lightbulb className="w-4 h-4 text-amber-500" />
                       คำแนะนำจากข้อมูล
@@ -672,11 +679,11 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                         </div>
                         <div className="p-3 bg-stone-50 rounded-xl">
                           <p className="text-xs text-stone-400 mb-1">วันขายดีที่สุด</p>
-                          <p className="text-xl font-bold text-stone-800">{prediction.bestDays[0]?. dayName || '-'}</p>
+                          <p className="text-xl font-bold text-stone-800">{prediction.bestDays[0]?.dayName || '-'}</p>
                         </div>
                         <div className="p-3 bg-stone-50 rounded-xl">
                           <p className="text-xs text-stone-400 mb-1">ชั่วโมงขายดี</p>
-                          <p className="text-xl font-bold text-stone-800">{formatHour(prediction.busiestHour. hour)}</p>
+                          <p className="text-xl font-bold text-stone-800">{formatHour(prediction.busiestHour.hour)}</p>
                         </div>
                         <div className="p-3 bg-stone-50 rounded-xl">
                           <p className="text-xs text-stone-400 mb-1">ข้อมูลที่วิเคราะห์</p>
@@ -684,7 +691,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                         </div>
                         <div className="p-3 bg-stone-50 rounded-xl">
                           <p className="text-xs text-stone-400 mb-1">จำนวนออเดอร์ทั้งหมด</p>
-                          <p className="text-xl font-bold text-stone-800">{formatCurrency(prediction. totalOrders)}</p>
+                          <p className="text-xl font-bold text-stone-800">{formatCurrency(prediction.totalOrders)}</p>
                         </div>
                       </div>
                     </div>
