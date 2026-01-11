@@ -514,7 +514,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                   ใบรายการอาหาร
                 </h2>
                 <p className="text-slate-500 text-xs md:text-sm mt-1 hidden md:block">ตรวจสอบรายการก่อนชำระเงิน</p>
-                <p className="text-slate-500 text-xs mt-1 md:hidden">โต๊ะ:  {tableName}</p>
+                <p className="text-slate-500 text-xs mt-1 md:hidden">{tableName}</p>
               </div>
               
               <div className="flex items-center gap-2">

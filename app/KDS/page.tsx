@@ -419,7 +419,7 @@ export default function KitchenDisplay() {
                                 {isTakeaway ? <Home className="w-4 h-4" /> : <UtensilsCrossed className="w-4 h-4" />}
                             </div>
                             <span className="text-xl font-black text-stone-800">
-                                {isTakeaway ? 'กลับบ้าน' : `โต๊ะ ${order.table_number}`}
+                                {isTakeaway ? 'กลับบ้าน' : `${order.table_number}`}
                             </span>
                         </div>
                     </div>

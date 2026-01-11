@@ -121,7 +121,7 @@ export default function MenuManagementPage() {
       setMenuItems(menuData || [])
     } catch (err:  any) {
       console.error('Error loading data:', err)
-      setError(err?. message || 'ไม่สามารถโหลดข้อมูลได้')
+      setError(err?.message || 'ไม่สามารถโหลดข้อมูลได้')
     } finally {
       setLoading(false)
     }
@@ -148,7 +148,7 @@ export default function MenuManagementPage() {
       .from('profiles_avatars')
       .getPublicUrl(fileName)
 
-    return urlData. publicUrl
+    return urlData.publicUrl
   }
 
   // ✅ ฟังก์ชัน format ขนาดไฟล์
@@ -159,18 +159,18 @@ export default function MenuManagementPage() {
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e. target.files?.[0]
+    const file = e.target.files?.[0]
     if (!file) return
 
     // ✅ ตรวจสอบประเภทไฟล์
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
-    if (!allowedTypes. includes(file.type)) {
+    if (!allowedTypes.includes(file.type)) {
       alert('รองรับเฉพาะไฟล์ PNG, JPG, JPEG, WEBP เท่านั้น')
       return
     }
 
     // ✅ ตรวจสอบขนาดไฟล์ (max 10MB)
-    if (file. size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
       alert(`ขนาดไฟล์ต้องไม่เกิน ${MAX_FILE_SIZE_MB}MB\nไฟล์ของคุณมีขนาด ${formatFileSize(file.size)}`)
       return
     }
@@ -184,7 +184,7 @@ export default function MenuManagementPage() {
       reader.onloadend = () => {
         setImagePreview(reader.result as string)
       }
-      reader. readAsDataURL(file)
+      reader.readAsDataURL(file)
       setUploadProgress(10)
 
       // Simulate progress สำหรับไฟล์ใหญ่
@@ -208,7 +208,7 @@ export default function MenuManagementPage() {
 
     } catch (err:  any) {
       console.error('Upload error:', err)
-      alert('เกิดข้อผิดพลาดในการอัพโหลด:  ' + err?. message)
+      alert('เกิดข้อผิดพลาดในการอัพโหลด:  ' + err?.message)
       setImagePreview(null)
     } finally {
       setTimeout(() => {
@@ -238,7 +238,7 @@ export default function MenuManagementPage() {
     setFormData({
       name: item.name,
       description: item.description || '',
-      price: item. price.toString(),
+      price: item.price.toString(),
       category_id:  item.category_id,
       image_url: item.image_url || '',
       is_available:  item.is_available,
@@ -255,17 +255,17 @@ export default function MenuManagementPage() {
   }
 
   const handleSaveAdd = async () => {
-    if (!formData.name || ! formData.price || !formData.category_id) {
+    if (!formData.name || !formData.price || !formData.category_id) {
       alert('กรุณากรอกข้อมูลให้ครบ')
       return
     }
 
     setSaving(true)
     try {
-      const { error } = await supabase. from('menu_items').insert({
+      const { error } = await supabase.from('menu_items').insert({
         name: formData.name,
         description: formData.description || null,
-        price:  parseFloat(formData. price),
+        price:  parseFloat(formData.price),
         category_id: formData.category_id,
         image_url: formData.image_url || null,
         is_available: formData.is_available,
@@ -280,14 +280,14 @@ export default function MenuManagementPage() {
       setImagePreview(null)
     } catch (err:  any) {
       console.error('Error adding menu:', err)
-      alert('เกิดข้อผิดพลาด: ' + err?. message)
+      alert('เกิดข้อผิดพลาด: ' + err?.message)
     } finally {
       setSaving(false)
     }
   }
 
   const handleSaveEdit = async () => {
-    if (!selectedItem || !formData.name || !formData. price || !formData.category_id) {
+    if (!selectedItem || !formData.name || !formData.price || !formData.category_id) {
       alert('กรุณากรอกข้อมูลให้ครบ')
       return
     }
@@ -297,13 +297,13 @@ export default function MenuManagementPage() {
       const { error } = await supabase
         .from('menu_items')
         .update({
-          name: formData. name,
+          name: formData.name,
           description: formData.description || null,
           price: parseFloat(formData.price),
           category_id: formData.category_id,
           image_url: formData.image_url || null,
           is_available: formData.is_available,
-          is_recommended: formData. is_recommended,
+          is_recommended: formData.is_recommended,
           updated_at: new Date().toISOString(),
         })
         .eq('id', selectedItem.id)
@@ -316,7 +316,7 @@ export default function MenuManagementPage() {
       setFormData(initialFormData)
       setImagePreview(null)
     } catch (err: any) {
-      console. error('Error updating menu:', err)
+      console.error('Error updating menu:', err)
       alert('เกิดข้อผิดพลาด: ' + err?.message)
     } finally {
       setSaving(false)
@@ -329,7 +329,7 @@ export default function MenuManagementPage() {
     setSaving(true)
     try {
       const { error } = await supabase
-        . from('menu_items')
+        .from('menu_items')
         .delete()
         .eq('id', selectedItem.id)
 
@@ -349,8 +349,8 @@ export default function MenuManagementPage() {
   const handleToggleAvailable = async (item: MenuItem) => {
     try {
       const { error } = await supabase
-        . from('menu_items')
-        .update({ is_available: ! item.is_available, updated_at: new Date().toISOString() })
+        .from('menu_items')
+        .update({ is_available: !item.is_available, updated_at: new Date().toISOString() })
         .eq('id', item.id)
 
       if (error) throw error
@@ -366,14 +366,14 @@ export default function MenuManagementPage() {
   const handleToggleRecommended = async (item: MenuItem) => {
     try {
       const { error } = await supabase
-        . from('menu_items')
+        .from('menu_items')
         .update({ is_recommended:  !item.is_recommended, updated_at: new Date().toISOString() })
         .eq('id', item.id)
 
       if (error) throw error
 
       setMenuItems(prev => prev.map(m =>
-        m.id === item.id ? { ... m, is_recommended: !m.is_recommended } : m
+        m.id === item.id ? { ...m, is_recommended: !m.is_recommended } : m
       ))
     } catch (err:  any) {
       console.error('Error toggling recommended:', err)
@@ -384,14 +384,14 @@ export default function MenuManagementPage() {
     new Intl.NumberFormat('th-TH', { minimumFractionDigits: 0 }).format(amount)
 
   const filteredItems = menuItems.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery. toLowerCase())
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === null || item.category_id === selectedCategory
     return matchesSearch && matchesCategory
   })
 
   const groupedItems = filteredItems.reduce((acc, item) => {
-    const categoryName = item.category?. name || 'ไม่มีหมวดหมู่'
-    if (! acc[categoryName]) acc[categoryName] = []
+    const categoryName = item.category?.name || 'ไม่มีหมวดหมู่'
+    if (!acc[categoryName]) acc[categoryName] = []
     acc[categoryName].push(item)
     return acc
   }, {} as Record<string, MenuItem[]>)
@@ -418,7 +418,7 @@ export default function MenuManagementPage() {
           </div>
           <h2 className="text-lg font-semibold text-stone-800 mb-2">เกิดข้อผิดพลาด</h2>
           <p className="text-stone-500 text-sm mb-4">{error}</p>
-          <button onClick={loadData} className="w-full py-2. 5 bg-stone-800 text-white rounded-xl font-medium hover:bg-stone-700 transition-colors">
+          <button onClick={loadData} className="w-full py-2.5 bg-stone-800 text-white rounded-xl font-medium hover:bg-stone-700 transition-colors">
             ลองใหม่
           </button>
         </div>
@@ -430,22 +430,22 @@ export default function MenuManagementPage() {
     <main className="min-h-screen bg-stone-50 pb-24">
       {/* Header */}
       <div className="bg-white border-b border-stone-200 sticky top-0 z-40">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center">
-                <UtensilsCrossed className="w-5 h-5 text-stone-600" />
+        <div className="px-4 py-3 md:py-4">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-stone-100 rounded-lg md:rounded-xl flex items-center justify-center">
+                <UtensilsCrossed className="w-4 h-4 md:w-5 md:h-5 text-stone-600" />
               </div>
               <div>
-                <h1 className="font-semibold text-stone-800">จัดการเมนู</h1>
-                <p className="text-xs text-stone-400">{menuItems.length} รายการ • {availableCount} พร้อมขาย</p>
+                <h1 className="font-bold text-stone-800 text-base md:text-lg">จัดการเมนู</h1>
+                <p className="text-[10px] md:text-xs text-stone-400">{menuItems.length} รายการ • {availableCount} พร้อมขาย</p>
               </div>
             </div>
             <button
               onClick={handleAddMenu}
-              className="flex items-center gap-2 px-4 py-2.5 bg-stone-800 text-white rounded-xl font-medium hover:bg-stone-700 transition-colors"
+              className="flex items-center gap-1 md:gap-2 px-3 py-2 md:px-4 md:py-2.5 bg-stone-800 text-white rounded-lg md:rounded-xl font-medium hover:bg-stone-700 transition-colors text-sm md:text-base"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 md:w-5 md:h-5" />
               <span className="hidden sm:inline">เพิ่มเมนู</span>
             </button>
           </div>
@@ -453,22 +453,23 @@ export default function MenuManagementPage() {
           {/* Search & Filter */}
           <div className="flex gap-2">
             <div className="flex-1 relative">
-              <Search className="w-5 h-5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 md:w-5 md:h-5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="ค้นหาเมนู..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-stone-100 rounded-xl text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400"
+                className="w-full pl-9 md:pl-10 pr-4 py-2 md:py-2.5 bg-stone-100 rounded-lg md:rounded-xl text-stone-800 text-sm md:text-base placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400"
               />
             </div>
             <div className="relative">
               <button
-                onClick={() => setShowCategoryFilter(! showCategoryFilter)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-stone-100 rounded-xl text-stone-600 hover:bg-stone-200 transition-colors"
+                onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+                className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-stone-100 rounded-lg md:rounded-xl text-stone-600 hover:bg-stone-200 transition-colors text-sm md:text-base"
               >
-                <Filter className="w-5 h-5" />
-                <ChevronDown className="w-4 h-4" />
+                <Filter className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline">หมวดหมู่</span>
+                <ChevronDown className="w-3 h-3 md:w-4 md:h-4" />
               </button>
               {showCategoryFilter && (
                 <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-stone-200 py-2 min-w-[180px] z-50">
@@ -479,12 +480,12 @@ export default function MenuManagementPage() {
                     ทั้งหมด ({menuItems.length})
                   </button>
                   {categories.map((cat) => {
-                    const count = menuItems.filter(m => m. category_id === cat.id).length
+                    const count = menuItems.filter(m => m.category_id === cat.id).length
                     return (
                       <button
                         key={cat.id}
                         onClick={() => { setSelectedCategory(cat.id); setShowCategoryFilter(false) }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-stone-50 flex justify-between ${selectedCategory === cat. id ? 'text-stone-800 font-medium' :  'text-stone-600'}`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-stone-50 flex justify-between ${selectedCategory === cat.id ? 'text-stone-800 font-medium' :  'text-stone-600'}`}
                       >
                         <span>{cat.name}</span>
                         <span className="text-stone-400">{count}</span>
@@ -494,18 +495,18 @@ export default function MenuManagementPage() {
                 </div>
               )}
             </div>
-            <div className="flex bg-stone-100 rounded-xl p-1">
+            <div className="flex bg-stone-100 rounded-lg md:rounded-xl p-1 shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-400'}`}
+                className={`p-1.5 md:p-2 rounded-md md:rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-400'}`}
               >
-                <Grid3X3 className="w-5 h-5" />
+                <Grid3X3 className="w-4 h-4 md:w-5 md:h-5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-400'}`}
+                className={`p-1.5 md:p-2 rounded-md md:rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-stone-800' : 'text-stone-400'}`}
               >
-                <List className="w-5 h-5" />
+                <List className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
           </div>
@@ -513,7 +514,7 @@ export default function MenuManagementPage() {
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-3 md:p-4">
         {filteredItems.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center border border-stone-200">
             <div className="w-14 h-14 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -527,56 +528,56 @@ export default function MenuManagementPage() {
             {Object.entries(groupedItems).map(([categoryName, items]) => (
               <div key={categoryName}>
                 <h2 className="font-semibold text-stone-800 mb-3 flex items-center gap-2 text-sm">
-                  <span className="w-1. 5 h-1.5 bg-stone-400 rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-stone-400 rounded-full"></span>
                   {categoryName}
                   <span className="font-normal text-stone-400">({items.length})</span>
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className={`bg-white rounded-xl border border-stone-200 overflow-hidden hover:shadow-md transition-all ${! item.is_available ? 'opacity-60' : ''}`}
+                      className={`bg-white rounded-lg md:rounded-xl border border-stone-200 overflow-hidden hover:shadow-md transition-all ${!item.is_available ? 'opacity-60' : ''}`}
                     >
                       <div className="aspect-square bg-stone-100 relative">
                         {item.image_url ?  (
                           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon className="w-10 h-10 text-stone-300" />
+                            <ImageIcon className="w-8 h-8 md:w-10 md:h-10 text-stone-300" />
                           </div>
                         )}
-                        <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        <div className="absolute top-1.5 left-1.5 md:top-2 md:left-2 flex flex-col gap-1">
                           {item.is_recommended && (
-                            <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
-                              <Star className="w-3 h-3" /> แนะนำ
+                            <span className="bg-amber-100 text-amber-700 text-[10px] md:text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 font-medium">
+                              <Star className="w-2.5 h-2.5 md:w-3 md:h-3" /> แนะนำ
                             </span>
                           )}
-                          {! item.is_available && (
-                            <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">หมด</span>
+                          {!item.is_available && (
+                            <span className="bg-red-100 text-red-600 text-[10px] md:text-xs px-1.5 py-0.5 rounded-full font-medium">หมด</span>
                           )}
                         </div>
                         <button
                           onClick={() => handleToggleRecommended(item)}
-                          className={`absolute top-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${item.is_recommended ?  'bg-amber-100 text-amber-600' : 'bg-white/80 text-stone-400 hover:bg-white'}`}
+                          className={`absolute top-1.5 right-1.5 md:top-2 md:right-2 w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center transition-colors ${item.is_recommended ?  'bg-amber-100 text-amber-600' : 'bg-white/80 text-stone-400 hover:bg-white'}`}
                         >
-                          <Star className="w-4 h-4" />
+                          <Star className="w-3.5 h-3.5 md:w-4 md:h-4" />
                         </button>
                       </div>
-                      <div className="p-3">
-                        <h3 className="font-medium text-stone-800 truncate text-sm">{item.name}</h3>
-                        <p className="text-lg font-bold text-stone-800">฿{formatCurrency(item.price)}</p>
-                        <div className="flex gap-2 mt-2">
+                      <div className="p-2 md:p-3">
+                        <h3 className="font-medium text-stone-800 truncate text-xs md:text-sm">{item.name}</h3>
+                        <p className="text-base md:text-lg font-bold text-stone-800">฿{formatCurrency(item.price)}</p>
+                        <div className="flex gap-1.5 md:gap-2 mt-2">
                           <button
                             onClick={() => handleToggleAvailable(item)}
-                            className={`flex-1 py-1. 5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-colors ${item.is_available ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}
+                            className={`flex-1 py-1 rounded-md md:rounded-lg text-[10px] md:text-xs font-medium flex items-center justify-center gap-1 transition-colors ${item.is_available ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}
                           >
-                            {item.is_available ? <><ToggleRight className="w-4 h-4" /> พร้อมขาย</> :  <><ToggleLeft className="w-4 h-4" /> หมด</>}
+                            {item.is_available ? <><ToggleRight className="w-3 h-3 md:w-4 md:h-4" /> พร้อมขาย</> :  <><ToggleLeft className="w-3 h-3 md:w-4 md:h-4" /> หมด</>}
                           </button>
-                          <button onClick={() => handleEditMenu(item)} className="p-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
-                            <Edit3 className="w-4 h-4" />
+                          <button onClick={() => handleEditMenu(item)} className="p-1 md:p-1.5 bg-stone-100 text-stone-600 rounded-md md:rounded-lg hover:bg-stone-200 transition-colors">
+                            <Edit3 className="w-3 h-3 md:w-4 md:h-4" />
                           </button>
-                          <button onClick={() => handleDeleteMenu(item)} className="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors">
-                            <Trash2 className="w-4 h-4" />
+                          <button onClick={() => handleDeleteMenu(item)} className="p-1 md:p-1.5 bg-red-50 text-red-500 rounded-md md:rounded-lg hover:bg-red-100 transition-colors">
+                            <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                           </button>
                         </div>
                       </div>
@@ -590,7 +591,7 @@ export default function MenuManagementPage() {
           <div className="space-y-4">
             {Object.entries(groupedItems).map(([categoryName, items]) => (
               <div key={categoryName} className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-                <div className="px-4 py-3 bg-stone-50 border-b border-stone-100">
+                <div className="px-4 py-2.5 bg-stone-50 border-b border-stone-100">
                   <h2 className="font-semibold text-stone-800 flex items-center gap-2 text-sm">
                     <span className="w-1.5 h-1.5 bg-stone-400 rounded-full"></span>
                     {categoryName}
@@ -599,38 +600,38 @@ export default function MenuManagementPage() {
                 </div>
                 <div className="divide-y divide-stone-100">
                   {items.map((item) => (
-                    <div key={item.id} className={`p-4 flex items-center gap-4 hover: bg-stone-50 transition-colors ${!item.is_available ? 'opacity-60' : ''}`}>
-                      <div className="w-14 h-14 bg-stone-100 rounded-xl overflow-hidden flex-shrink-0">
+                    <div key={item.id} className={`p-3 md:p-4 flex items-center gap-3 md:gap-4 hover:bg-stone-50 transition-colors ${!item.is_available ? 'opacity-60' : ''}`}>
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-stone-100 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0">
                         {item.image_url ?  (
-                          <img src={item. image_url} alt={item.name} className="w-full h-full object-cover" />
+                          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon className="w-6 h-6 text-stone-300" />
+                            <ImageIcon className="w-5 h-5 md:w-6 md:h-6 text-stone-300" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-stone-800 truncate">{item.name}</h3>
-                          {item.is_recommended && <Star className="w-4 h-4 text-amber-500 flex-shrink-0" />}
+                          <h3 className="font-medium text-stone-800 truncate text-sm md:text-base">{item.name}</h3>
+                          {item.is_recommended && <Star className="w-3 h-3 md:w-4 md:h-4 text-amber-500 flex-shrink-0" />}
                         </div>
-                        <p className="text-lg font-bold text-stone-800">฿{formatCurrency(item.price)}</p>
+                        <p className="text-base md:text-lg font-bold text-stone-800">฿{formatCurrency(item.price)}</p>
                       </div>
                       <button
                         onClick={() => handleToggleAvailable(item)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${item. is_available ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}
+                        className={`px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-medium transition-colors whitespace-nowrap ${item.is_available ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}
                       >
                         {item.is_available ? 'พร้อมขาย' : 'หมด'}
                       </button>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleToggleRecommended(item)} className={`p-2 rounded-lg transition-colors ${item. is_recommended ? 'bg-amber-100 text-amber-600' : 'bg-stone-100 text-stone-400'}`}>
-                          <Star className="w-5 h-5" />
+                      <div className="flex gap-1.5 md:gap-2">
+                        <button onClick={() => handleToggleRecommended(item)} className={`p-1.5 md:p-2 rounded-lg transition-colors ${item.is_recommended ? 'bg-amber-100 text-amber-600' : 'bg-stone-100 text-stone-400'}`}>
+                          <Star className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
-                        <button onClick={() => handleEditMenu(item)} className="p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
-                          <Edit3 className="w-5 h-5" />
+                        <button onClick={() => handleEditMenu(item)} className="p-1.5 md:p-2 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
+                          <Edit3 className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
-                        <button onClick={() => handleDeleteMenu(item)} className="p-2 bg-red-50 text-red-500 rounded-lg hover: bg-red-100 transition-colors">
-                          <Trash2 className="w-5 h-5" />
+                        <button onClick={() => handleDeleteMenu(item)} className="p-1.5 md:p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors">
+                          <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                       </div>
                     </div>
@@ -644,19 +645,20 @@ export default function MenuManagementPage() {
 
       {/* Add/Edit Modal */}
       {(showAddModal || showEditModal) && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => { setShowAddModal(false); setShowEditModal(false) }} />
-          <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
-            <div className="bg-stone-800 px-5 py-4 text-white">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setShowAddModal(false); setShowEditModal(false) }} />
+          {/* Modal Container: Full screen on mobile, Box on Desktop */}
+          <div className="relative bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div className="bg-stone-800 px-4 md:px-5 py-3 md:py-4 text-white shrink-0">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">{showAddModal ?  'เพิ่มเมนูใหม่' : 'แก้ไขเมนู'}</h2>
+                <h2 className="text-base md:text-lg font-semibold">{showAddModal ?  'เพิ่มเมนูใหม่' : 'แก้ไขเมนู'}</h2>
                 <button onClick={() => { setShowAddModal(false); setShowEditModal(false) }} className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-4 md:p-5 space-y-4 overflow-y-auto flex-1 md:max-h-[70vh]">
               {/* Image Upload Section */}
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">รูปภาพ</label>
@@ -736,7 +738,7 @@ export default function MenuManagementPage() {
                             <span className="text-sm font-medium">อัพโหลดสำเร็จ</span>
                           </div>
                           <p className="text-xs text-stone-500 break-all">
-                            {formData.image_url?. substring(0, 60)}...
+                            {formData.image_url?.substring(0, 60)}...
                           </p>
                         </div>
                       </div>
@@ -748,8 +750,8 @@ export default function MenuManagementPage() {
                       type="text"
                       value={formData.image_url}
                       onChange={(e) => {
-                        setFormData({ ...formData, image_url: e. target.value })
-                        setImagePreview(e. target.value)
+                        setFormData({ ...formData, image_url: e.target.value })
+                        setImagePreview(e.target.value)
                       }}
                       placeholder="https://example.com/image.jpg"
                       className="w-full px-4 py-3 bg-stone-100 rounded-xl text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400"
@@ -785,7 +787,7 @@ export default function MenuManagementPage() {
                 <label className="block text-sm font-medium text-stone-700 mb-1">หมวดหมู่ *</label>
                 <select
                   value={formData.category_id || ''}
-                  onChange={(e) => setFormData({ ... formData, category_id: parseInt(e.target. value) || null })}
+                  onChange={(e) => setFormData({ ...formData, category_id: parseInt(e.target.value) || null })}
                   className="w-full px-4 py-3 bg-stone-100 rounded-xl text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-400"
                 >
                   <option value="">เลือกหมวดหมู่</option>
@@ -803,7 +805,7 @@ export default function MenuManagementPage() {
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   placeholder="0"
-                  className="w-full px-4 py-3 bg-stone-100 rounded-xl text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus: ring-stone-400"
+                  className="w-full px-4 py-3 bg-stone-100 rounded-xl text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400"
                 />
               </div>
 
@@ -815,7 +817,7 @@ export default function MenuManagementPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)"
                   rows={2}
-                  className="w-full px-4 py-3 bg-stone-100 rounded-xl text-stone-800 placeholder-stone-400 focus: outline-none focus: ring-2 focus:ring-stone-400 resize-none"
+                  className="w-full px-4 py-3 bg-stone-100 rounded-xl text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-400 resize-none"
                 />
               </div>
 
@@ -831,7 +833,7 @@ export default function MenuManagementPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, is_recommended: !formData. is_recommended })}
+                  onClick={() => setFormData({ ...formData, is_recommended: !formData.is_recommended })}
                   className={`flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors border-2 ${formData.is_recommended ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-stone-50 text-stone-500 border-stone-200'}`}
                 >
                   {formData.is_recommended ? <Star className="w-5 h-5" /> : <StarOff className="w-5 h-5" />}
@@ -840,7 +842,7 @@ export default function MenuManagementPage() {
               </div>
             </div>
 
-            <div className="p-4 bg-stone-50 border-t border-stone-100 flex gap-3">
+            <div className="p-4 bg-stone-50 border-t border-stone-100 flex gap-3 shrink-0">
               <button
                 onClick={() => { setShowAddModal(false); setShowEditModal(false) }}
                 className="flex-1 py-3 bg-stone-200 text-stone-700 rounded-xl font-medium hover:bg-stone-300 transition-colors"
@@ -862,7 +864,7 @@ export default function MenuManagementPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowDeleteModal(false)} />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
           <div className="relative bg-white w-full max-w-sm rounded-2xl shadow-xl overflow-hidden">
             <div className="p-6 text-center">
               <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -879,7 +881,7 @@ export default function MenuManagementPage() {
                 <button
                   onClick={handleConfirmDelete}
                   disabled={saving}
-                  className="flex-1 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-red-50 text-white rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {saving ? <><Loader2 className="w-5 h-5 animate-spin" /> กำลังลบ...</> : <><Trash2 className="w-5 h-5" /> ลบเมนู</>}
                 </button>
