@@ -94,7 +94,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   // คะแนนสะสม
   const [earnedPoints, setEarnedPoints] = useState(0)
 
-  // ✅ เพิ่ม State สำหรับการทอนเงิน
+  // State สำหรับการทอนเงิน
   const [receivedAmount, setReceivedAmount] = useState<number>(0)
   const [customAmount, setCustomAmount] = useState<string>('')
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -109,61 +109,46 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     table_number: string | number
     earned_points?:  number 
     new_total_points?: number
-    received_amount?: number  // ✅ เพิ่มจำนวนเงินที่รับ
-    change_amount?: number    // ✅ เพิ่มเงินทอน
+    received_amount?: number
+    change_amount?: number
   } | null>(null)
 
-  // ✅ ตรวจสอบว่าเป็น Mobile หรือไม่
   const isMobile = () => {
     if (typeof window === 'undefined') return false
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator. userAgent)
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // ✅ คำนวณคะแนนที่จะได้รับ (100 บาท = 1 คะแนน)
   const calculatePoints = (amount: number): number => {
     return Math.floor(amount / 100)
   }
 
-  // ✅ คำนวณเงินทอน
   const calculateChange = (): number => {
-    if (! order) return 0
+    if (!order) return 0
     const total = calculateTotal(order.items)
     return Math.max(0, receivedAmount - total)
   }
 
-  // ✅ คำนวณธนบัตรที่แนะนำ
   const getSuggestedBills = (total: number): number[] => {
     const bills: number[] = []
-    
-    // พอดี
-    bills.push(total)
-    
-    // ปัดขึ้นเป็นหลักร้อย
+    bills.push(total) // พอดี
     const roundedUp100 = Math.ceil(total / 100) * 100
     if (roundedUp100 !== total) bills.push(roundedUp100)
-    
-    // ธนบัตรมาตรฐาน
     const standardBills = [100, 500, 1000, 2000]
     standardBills.forEach(bill => {
-      if (bill >= total && ! bills.includes(bill)) {
+      if (bill >= total && !bills.includes(bill)) {
         bills.push(bill)
       }
     })
-    
-    // เรียงลำดับ
-    return [... new Set(bills)].sort((a, b) => a - b).slice(0, 5)
+    return [...new Set(bills)].sort((a, b) => a - b).slice(0, 5)
   }
 
-  // ✅ จัดการการเลือกจำนวนเงิน
   const handleSelectAmount = (amount:  number) => {
     setReceivedAmount(amount)
     setShowCustomInput(false)
     setCustomAmount('')
   }
 
-  // ✅ จัดการ Custom Amount
   const handleCustomAmountChange = (value: string) => {
-    // อนุญาตเฉพาะตัวเลข
     const numericValue = value.replace(/[^0-9]/g, '')
     setCustomAmount(numericValue)
     if (numericValue) {
@@ -177,7 +162,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     try {
       setLoading(true)
       const { data, error } = await supabase
-        . from('orders')
+        .from('orders')
         .select(`
           *,
           order_items (
@@ -198,7 +183,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
       if (data) {
         const items = data.order_items || []
-        const calculatedTotal = items. reduce((sum:  number, item: any) => sum + (item.price * item.quantity), 0)
+        const calculatedTotal = items.reduce((sum:  number, item: any) => sum + (item.price * item.quantity), 0)
 
         let customerInfo: CustomerInfo | null = null
         if (data.customer_id) {
@@ -218,20 +203,18 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
           order_id: data.order_id,
           total_amount: calculatedTotal,
           customer_count: data.customer_count,
-          created_at: data. created_at,
+          created_at: data.created_at,
           customer_id:  data.customer_id,
           items:  items,
           customer: customerInfo
         }
         setOrder(formattedData)
 
-        // คำนวณคะแนนที่จะได้รับ
         if (data.customer_id) {
           const points = calculatePoints(calculatedTotal)
           setEarnedPoints(points)
         }
 
-        // ✅ ตั้งค่าเริ่มต้นจำนวนเงินที่รับ = ยอดรวม (พอดี)
         setReceivedAmount(calculatedTotal)
       } else {
         setError('ไม่พบรายการอาหารสำหรับโต๊ะนี้')
@@ -250,16 +233,14 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     }
   }, [tableId, fetchOrderDetails])
 
-  // Cleanup camera stream when component unmounts
   useEffect(() => {
     return () => {
       if (cameraStream) {
-        cameraStream. getTracks().forEach(track => track.stop())
+        cameraStream.getTracks().forEach(track => track.stop())
       }
     }
   }, [cameraStream])
 
-  // ✅ Reset cash options when payment method changes
   useEffect(() => {
     if (paymentMethod !== 'cash') {
       setReceivedAmount(order ?  calculateTotal(order.items) : 0)
@@ -272,7 +253,6 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     return items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   }
 
-  // จัดการเลือกรูปสลิป
   const handleSlipSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -280,17 +260,15 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
         alert('ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)')
         return
       }
-      
       setSlipImage(file)
       const reader = new FileReader()
       reader.onloadend = () => {
-        setSlipPreview(reader. result as string)
+        setSlipPreview(reader.result as string)
       }
       reader.readAsDataURL(file)
     }
   }
 
-  // เปิดกล้อง
   const handleOpenCamera = async () => {
     if (isMobile()) {
       if (cameraInputRef.current) {
@@ -298,24 +276,20 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
       }
       return
     }
-
     setCameraError(null)
     setShowCameraModal(true)
-
     try {
-      const stream = await navigator.mediaDevices. getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
           width: { ideal: 1280 },
           height: { ideal: 720 }
         }
       })
-      
       setCameraStream(stream)
-      
       setTimeout(() => {
         if (videoRef.current) {
-          videoRef. current.srcObject = stream
+          videoRef.current.srcObject = stream
           videoRef.current.play()
         }
       }, 100)
@@ -325,20 +299,15 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     }
   }
 
-  // ถ่ายรูปจากกล้อง
   const handleCapturePhoto = () => {
-    if (! videoRef.current || !canvasRef.current) return
-
+    if (!videoRef.current || !canvasRef.current) return
     const video = videoRef.current
     const canvas = canvasRef.current
     const context = canvas.getContext('2d')
-
     if (!context) return
-
-    canvas.width = video. videoWidth
-    canvas.height = video. videoHeight
-    context.drawImage(video, 0, 0, canvas.width, canvas. height)
-
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    context.drawImage(video, 0, 0, canvas.width, canvas.height)
     canvas.toBlob((blob) => {
       if (blob) {
         const file = new File([blob], `slip_${Date.now()}.jpg`, { type: 'image/jpeg' })
@@ -349,7 +318,6 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     }, 'image/jpeg', 0.9)
   }
 
-  // ปิดกล้อง
   const handleCloseCamera = () => {
     if (cameraStream) {
       cameraStream.getTracks().forEach(track => track.stop())
@@ -359,64 +327,52 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     setCameraError(null)
   }
 
-  // เปิด Gallery
   const handleOpenGallery = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click()
     }
   }
 
-  // ลบรูปสลิป
   const handleRemoveSlip = () => {
     setSlipImage(null)
     setSlipPreview(null)
-    if (fileInputRef.current) fileInputRef.current. value = ''
+    if (fileInputRef.current) fileInputRef.current.value = ''
     if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
-  // อัพโหลดสลิปไป Supabase Storage
   const uploadSlipImage = async (): Promise<string | null> => {
     if (!slipImage || !order) return null
-    
     setUploadingSlip(true)
     try {
-      const fileExt = slipImage.name.split('. ').pop() || 'jpg'
+      const fileExt = slipImage.name.split('.').pop() || 'jpg'
       const fileName = `${order.order_id}_${Date.now()}.${fileExt}`
       const filePath = `slips/${fileName}`
-
-      const { error:  uploadError } = await supabase. storage
+      const { error:  uploadError } = await supabase.storage
         .from('Money_transfer_slip_image')
         .upload(filePath, slipImage)
-
       if (uploadError) throw uploadError
-
       const { data: urlData } = supabase.storage
         .from('Money_transfer_slip_image')
         .getPublicUrl(filePath)
-
-      return urlData. publicUrl
+      return urlData.publicUrl
     } catch (err: any) {
-      console. error('Error uploading slip:', err)
+      console.error('Error uploading slip:', err)
       throw err
     } finally {
       setUploadingSlip(false)
     }
   }
 
-  // อัพเดทคะแนนสมาชิก
   const updateCustomerPoints = async (customerId: string, pointsToAdd: number): Promise<number> => {
     try {
       const { data: currentData, error:  fetchError } = await supabase
-        . from('profiles')
+        .from('profiles')
         .select('points')
         .eq('id', customerId)
         .single()
-
       if (fetchError) throw fetchError
-
-      const currentPoints = currentData?. points || 0
+      const currentPoints = currentData?.points || 0
       const newTotalPoints = currentPoints + pointsToAdd
-
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
@@ -424,40 +380,31 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
           updated_at: new Date().toISOString()
         })
         .eq('id', customerId)
-
       if (updateError) throw updateError
-
-      console.log(`Updated points for customer ${customerId}: ${currentPoints} + ${pointsToAdd} = ${newTotalPoints}`)
       return newTotalPoints
     } catch (err: any) {
-      console. error('Error updating customer points:', err)
+      console.error('Error updating customer points:', err)
       throw err
     }
   }
 
   const handlePayment = async () => {
     if (!order || !paymentMethod) return
-
     if (paymentMethod === 'promptpay' && !slipImage) {
       alert('กรุณาถ่ายรูปหรืออัพโหลดสลิปการโอนเงิน')
       return
     }
-
-    // ✅ ตรวจสอบเงินสดต้องมากกว่าหรือเท่ากับยอดรวม
     if (paymentMethod === 'cash') {
       const total = calculateTotal(order.items)
       if (receivedAmount < total) {
-        alert(`จำนวนเงินที่รับ (${receivedAmount. toLocaleString()} บาท) น้อยกว่ายอดที่ต้องชำระ (${total. toLocaleString()} บาท)`)
+        alert(`จำนวนเงินที่รับ (${receivedAmount.toLocaleString()} บาท) น้อยกว่ายอดที่ต้องชำระ (${total.toLocaleString()} บาท)`)
         return
       }
     }
-
     setIsProcessing(true)
-    
     try {
       const totalAmount = calculateTotal(order.items)
       const now = new Date().toISOString()
-
       let slipUrl: string | null = null
       if (paymentMethod === 'promptpay' && slipImage) {
         slipUrl = await uploadSlipImage()
@@ -465,52 +412,39 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
           throw new Error('ไม่สามารถอัพโหลดสลิปได้')
         }
       }
-
       const updateData:  any = {
         payment_status: paymentMethod,
         status: 'completed',
         total_amount: totalAmount,
         updated_at: now
       }
-      
       if (slipUrl) {
-        updateData. slip_url = slipUrl
+        updateData.slip_url = slipUrl
       }
-
       const { error:  orderError } = await supabase
-        . from('orders')
+        .from('orders')
         .update(updateData)
         .eq('id', order.id)
-
       if (orderError) throw orderError
-
       const { error: tableError } = await supabase
-        . from('tables')
+        .from('tables')
         .update({ current_status: 'vacant' })
         .eq('id', tableId)
-
       if (tableError) throw tableError
-
       await supabase
         .from('table_sessions')
         .update({ status: 'completed' })
         .eq('table_id', tableId)
         .eq('status', 'active')
-
-      // เพิ่มคะแนนให้สมาชิก
       let newTotalPoints = 0
       const pointsEarned = calculatePoints(totalAmount)
-      
       if (order.customer_id && pointsEarned > 0) {
         try {
           newTotalPoints = await updateCustomerPoints(order.customer_id, pointsEarned)
-          console.log(`Customer earned ${pointsEarned} points.  New total:  ${newTotalPoints}`)
         } catch (pointsError) {
           console.error('Failed to update points, but payment succeeded:', pointsError)
         }
       }
-
-      // ✅ เพิ่มข้อมูลเงินทอนใน Receipt
       const receiptInfo = {
         order_id: order.order_id,
         created_at: now,
@@ -524,14 +458,12 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
         received_amount: paymentMethod === 'cash' ? receivedAmount : undefined,
         change_amount:  paymentMethod === 'cash' ? calculateChange() : undefined,
       }
-      
       setReceiptData(receiptInfo)
       setShowReceipt(true)
       setIsProcessing(false)
-
     } catch (err:  any) {
       console.error('Payment Error:', err)
-      alert('เกิดข้อผิดพลาดในการชำระเงิน:  ' + (err. message || JSON.stringify(err)))
+      alert('เกิดข้อผิดพลาดในการชำระเงิน:  ' + (err.message || JSON.stringify(err)))
       setIsProcessing(false)
     }
   }
@@ -564,16 +496,20 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
   return (
     <>
+      {/* Container: Full screen on mobile (p-0), Popup on Desktop (p-4) */}
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
         <div className="bg-white rounded-none md:rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-full md:h-[90vh]">
           
-          {/* Left Column (Order Items) */}
-          <div className="flex-1 flex flex-col bg-slate-50 border-r border-slate-200 relative overflow-hidden h-1/2 md: h-full">
+          {/* Left Column (Order Items) 
+              Mobile: h-[35vh] fixed height to show summary 
+              Desktop: Full height flex column 
+          */}
+          <div className="w-full md:flex-1 flex flex-col bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 relative h-[35vh] md:h-full">
             
             {/* Header Area */}
-            <div className="p-4 md: p-6 bg-white border-b border-slate-100 flex justify-between items-center shadow-sm z-10 shrink-0">
+            <div className="p-3 md:p-6 bg-white border-b border-slate-100 flex justify-between items-center shadow-sm z-10 shrink-0">
               <div>
-                <h2 className="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-2">
+                <h2 className="text-lg md:text-2xl font-black text-slate-800 flex items-center gap-2">
                   <Receipt className="w-5 h-5 md:w-6 md:h-6 text-lime-600" />
                   ใบรายการอาหาร
                 </h2>
@@ -585,13 +521,14 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                 {order && (
                   <button 
                     onClick={() => setShowDrinkModal(true)}
-                    className="flex items-center gap-1 md:gap-2 bg-blue-50 text-blue-600 px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm text-sm md:text-base"
+                    className="flex items-center gap-1 md:gap-2 bg-blue-50 text-blue-600 px-2 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm text-xs md:text-base"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3 h-3 md:w-4 md:h-4" />
                     <span className="hidden sm:inline">เพิ่มน้ำ</span>
-                    <Coffee className="w-4 h-4 sm:hidden" />
+                    <Coffee className="w-3 h-3 md:w-4 md:h-4 sm:hidden" />
                   </button>
                 )}
+                {/* Mobile Close Button */}
                 <button onClick={onClose} className="md:hidden p-2 bg-slate-100 rounded-full hover:bg-red-50 hover:text-red-500">
                    <X className="w-5 h-5" />
                 </button>
@@ -599,45 +536,45 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto p-4 md: p-6 scroll-smooth">
+            <div className="flex-1 overflow-y-auto p-3 md:p-6 scroll-smooth bg-slate-50">
               
-              {/* แสดงข้อมูลสมาชิกถ้ามี */}
-              {order?. customer && (
-                <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shrink-0">
-                      {order.customer. avatar_url ? (
-                        <img src={order.customer. avatar_url} alt="" className="w-full h-full object-cover rounded-xl" />
+              {/* Member Info */}
+              {order?.customer && (
+                <div className="mb-3 md:mb-4 p-3 md:p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 shadow-sm">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shrink-0">
+                      {order.customer.avatar_url ? (
+                        <img src={order.customer.avatar_url} alt="" className="w-full h-full object-cover rounded-xl" />
                       ) : (
-                        <User className="w-6 h-6" />
+                        <User className="w-5 h-5 md:w-6 md:h-6" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <UserCheck className="w-4 h-4 text-purple-600" />
-                        <span className="text-xs text-purple-600 font-medium">สมาชิก</span>
+                        <UserCheck className="w-3 h-3 md:w-4 md:h-4 text-purple-600" />
+                        <span className="text-[10px] md:text-xs text-purple-600 font-medium">สมาชิก</span>
                       </div>
-                      <p className="font-bold text-slate-800 truncate">{order. customer.username || 'ลูกค้า'}</p>
+                      <p className="font-bold text-sm md:text-base text-slate-800 truncate">{order.customer.username || 'ลูกค้า'}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <div className="flex items-center gap-1 text-amber-600 justify-end">
-                        <Star className="w-4 h-4" />
-                        <span className="font-bold">{order.customer. points || 0}</span>
+                        <Star className="w-3 h-3 md:w-4 md:h-4" />
+                        <span className="font-bold text-sm md:text-base">{order.customer.points || 0}</span>
                       </div>
-                      <p className="text-xs text-slate-500">คะแนนสะสม</p>
+                      <p className="text-[10px] md:text-xs text-slate-500">คะแนนสะสม</p>
                     </div>
                   </div>
 
                   {earnedPoints > 0 && (
-                    <div className="mt-3 pt-3 border-t border-purple-200">
+                    <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-purple-200">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-emerald-600">
-                          <Gift className="w-4 h-4" />
-                          <span className="text-sm font-medium">คะแนนที่จะได้รับ</span>
+                          <Gift className="w-3 h-3 md:w-4 md:h-4" />
+                          <span className="text-xs md:text-sm font-medium">คะแนนที่จะได้รับ</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Sparkles className="w-4 h-4 text-amber-500" />
-                          <span className="font-bold text-emerald-600">+{earnedPoints} คะแนน</span>
+                          <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-amber-500" />
+                          <span className="font-bold text-xs md:text-sm text-emerald-600">+{earnedPoints} คะแนน</span>
                         </div>
                       </div>
                     </div>
@@ -646,50 +583,50 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               )}
 
               {loading ?  (
-                <div className="flex flex-col items-center justify-center h-40 md:h-full space-y-4">
-                  <Loader className="w-10 h-10 md:w-12 md:h-12 text-lime-500 animate-spin" />
-                  <p className="text-slate-400 font-medium">กำลังดึงข้อมูลใบเสร็จ...</p>
+                <div className="flex flex-col items-center justify-center h-32 md:h-full space-y-4">
+                  <Loader className="w-8 h-8 md:w-10 md:h-10 text-lime-500 animate-spin" />
+                  <p className="text-xs md:text-sm text-slate-400 font-medium">กำลังดึงข้อมูล...</p>
                 </div>
               ) : error ? (
-                <div className="flex flex-col items-center justify-center h-40 md:h-full text-center">
-                  <div className="bg-red-100 p-4 rounded-full mb-4">
-                    <X className="w-8 h-8 text-red-500" />
+                <div className="flex flex-col items-center justify-center h-32 md:h-full text-center">
+                  <div className="bg-red-100 p-3 md:p-4 rounded-full mb-3 md:mb-4">
+                    <X className="w-6 h-6 md:w-8 md:h-8 text-red-500" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-700">ไม่พบข้อมูล</h3>
-                  <p className="text-slate-500">{error}</p>
+                  <h3 className="text-base md:text-lg font-bold text-slate-700">ไม่พบข้อมูล</h3>
+                  <p className="text-xs md:text-sm text-slate-500">{error}</p>
                 </div>
               ) : order ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[350px]">
+                    <table className="w-full text-left border-collapse min-w-[300px] md:min-w-[350px]">
                       <thead>
-                        <tr className="bg-slate-100 text-slate-500 text-xs md:text-sm uppercase tracking-wider border-b border-slate-200">
-                          <th className="p-3 md:p-4 font-semibold">รายการ</th>
-                          <th className="p-3 md:p-4 font-semibold text-center w-16 md:w-24">จำนวน</th>
-                          <th className="p-3 md:p-4 font-semibold text-right w-24 md:w-32 hidden sm:table-cell">ราคา</th>
-                          <th className="p-3 md:p-4 font-semibold text-right w-24 md:w-32 bg-slate-200/50">รวม</th>
+                        <tr className="bg-slate-100 text-slate-500 text-[10px] md:text-sm uppercase tracking-wider border-b border-slate-200">
+                          <th className="p-2 md:p-4 font-semibold">รายการ</th>
+                          <th className="p-2 md:p-4 font-semibold text-center w-12 md:w-24">จำนวน</th>
+                          <th className="p-2 md:p-4 font-semibold text-right w-16 md:w-32 hidden sm:table-cell">ราคา</th>
+                          <th className="p-2 md:p-4 font-semibold text-right w-20 md:w-32 bg-slate-200/50">รวม</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {order.items.map((item, index) => (
-                          <tr key={item.id || index} className="hover:bg-lime-50/50 transition-colors text-sm md:text-base">
-                            <td className="p-3 md:p-4 font-medium text-slate-700">
+                          <tr key={item.id || index} className="hover:bg-lime-50/50 transition-colors text-xs md:text-base">
+                            <td className="p-2 md:p-4 font-medium text-slate-700">
                               <div className="line-clamp-2">
-                                {item.menu_items?. name || 'ไม่ระบุชื่อ'}
+                                {item.menu_items?.name || 'ไม่ระบุชื่อ'}
                               </div>
-                              <div className="sm:hidden text-xs text-slate-400 mt-1">
-                                {item. price. toLocaleString()} / หน่วย
+                              <div className="sm:hidden text-[10px] text-slate-400 mt-0.5">
+                                {item.price.toLocaleString()} / หน่วย
                               </div>
                             </td>
-                            <td className="p-3 md: p-4 text-center">
-                              <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-xs md:text-sm font-bold whitespace-nowrap">
+                            <td className="p-2 md:p-4 text-center">
+                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[10px] md:text-sm font-bold whitespace-nowrap">
                                 x {item.quantity}
                               </span>
                             </td>
-                            <td className="p-3 md:p-4 text-right text-slate-500 font-mono hidden sm:table-cell">
+                            <td className="p-2 md:p-4 text-right text-slate-500 font-mono hidden sm:table-cell">
                               {item.price.toLocaleString()}
                             </td>
-                            <td className="p-3 md:p-4 text-right font-bold text-slate-800 font-mono bg-slate-50/50">
+                            <td className="p-2 md:p-4 text-right font-bold text-slate-800 font-mono bg-slate-50/50">
                               {(item.price * item.quantity).toLocaleString()}
                             </td>
                           </tr>
@@ -697,12 +634,12 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                       </tbody>
                       <tfoot className="bg-slate-50 border-t border-slate-200">
                         <tr>
-                          <td colSpan={2} className="p-3 md:p-4 text-right font-bold text-slate-600 text-xs md:text-sm">
-                             <span className="sm:hidden">จำนวนรวม</span>
+                          <td colSpan={2} className="p-2 md:p-4 text-right font-bold text-slate-600 text-[10px] md:text-sm">
+                             <span className="sm:hidden">รวม</span>
                              <span className="hidden sm:inline">รวมจำนวนรายการ</span>
                           </td>
-                          <td className="p-3 md: p-4 text-right font-bold text-slate-800 text-sm md:text-base hidden sm:table-cell"></td>
-                          <td className="p-3 md: p-4 text-right font-bold text-slate-800 text-sm md:text-base">
+                          <td className="p-2 md:p-4 text-right font-bold text-slate-800 text-xs md:text-sm hidden sm:table-cell"></td>
+                          <td className="p-2 md:p-4 text-right font-bold text-slate-800 text-xs md:text-base">
                             {order.items.reduce((acc, item) => acc + item.quantity, 0)}
                           </td>
                         </tr>
@@ -714,10 +651,13 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
             </div>
           </div>
 
-          {/* Right Column (Payment & Actions) */}
-          <div className="w-full md:w-[420px] bg-white flex flex-col h-1/2 md: h-full shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-l-xl z-20 border-t md:border-t-0 md:border-l border-slate-200">
+          {/* Right Column (Payment & Actions)
+              Mobile: flex-1 to take remaining space
+              Desktop: Fixed width 420px
+          */}
+          <div className="w-full md:w-[420px] bg-white flex flex-col flex-1 md:h-full shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-l-xl z-20 md:border-l border-slate-200">
             
-            <div className="p-4 md: p-6 flex-1 flex flex-col gap-4 md:gap-5 overflow-y-auto bg-white">
+            <div className="p-4 md:p-6 flex-1 flex flex-col gap-3 md:gap-5 overflow-y-auto bg-white">
               
               <div className="hidden md:flex justify-end mb-2">
                 <button onClick={onClose} className="group p-2 hover:bg-red-50 rounded-full transition-colors flex items-center gap-2 text-slate-400 hover:text-red-500 text-sm font-medium">
@@ -725,6 +665,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                 </button>
               </div>
 
+              {/* Order Info Summary */}
               {order && (
                 <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <div className="bg-slate-50 p-2 md:p-3 rounded-xl border border-slate-100">
@@ -746,161 +687,152 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                 </div>
               )}
 
-              <div className="bg-lime-50 rounded-2xl p-4 md:p-5 border-2 border-lime-100 text-center space-y-1 shrink-0">
-                <div className="text-lime-700 font-semibold text-xs md:text-sm uppercase tracking-widest">ยอดสุทธิที่ต้องชำระ</div>
+              {/* Total Amount Badge */}
+              <div className="bg-lime-50 rounded-2xl p-3 md:p-5 border-2 border-lime-100 text-center space-y-0.5 md:space-y-1 shrink-0">
+                <div className="text-lime-700 font-semibold text-[10px] md:text-sm uppercase tracking-widest">ยอดสุทธิที่ต้องชำระ</div>
                 <div className="text-3xl md:text-4xl font-black text-lime-600 font-mono tracking-tighter">
                   {totalAmount.toLocaleString()}
                   <span className="text-sm md:text-base text-lime-500 font-bold ml-2">THB</span>
                 </div>
-                {order?. customer_id && earnedPoints > 0 && (
-                  <div className="flex items-center justify-center gap-2 mt-2 text-emerald-600">
+                {order?.customer_id && earnedPoints > 0 && (
+                  <div className="flex items-center justify-center gap-2 mt-1 md:mt-2 text-emerald-600">
                     <Gift className="w-3 h-3 md:w-4 md:h-4" />
-                    <span className="text-xs md:text-sm font-medium">รับ +{earnedPoints} คะแนน</span>
+                    <span className="text-[10px] md:text-sm font-medium">รับ +{earnedPoints} คะแนน</span>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-3">
-                <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-lime-500 rounded-full"></div>
+              {/* Payment Methods */}
+              <div className="space-y-2 md:space-y-3">
+                <div className="text-xs md:text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <div className="w-1 h-3 md:h-4 bg-lime-500 rounded-full"></div>
                   วิธีการชำระเงิน
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
                   <button
                     onClick={() => {
                       setPaymentMethod('cash')
                       handleRemoveSlip()
                     }}
-                    className={`relative p-3 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-4 transition-all group ${
+                    className={`relative p-2 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-4 transition-all group ${
                       paymentMethod === 'cash' 
                         ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-200 ring-offset-2' 
-                        :  'border-slate-100 bg-white hover:border-green-300 hover: bg-green-50/50'
+                        :  'border-slate-100 bg-white hover:border-green-300 hover:bg-green-50/50'
                     }`}
                   >
-                    <div className={`p-2 md: p-3 rounded-full shrink-0 ${paymentMethod === 'cash' ? 'bg-green-500 text-white' :  'bg-slate-100 text-slate-500 group-hover:bg-green-100 group-hover:text-green-600'}`}>
-                      <Banknote className="w-5 h-5 md:w-6 md:h-6" />
+                    <div className={`p-1.5 md:p-3 rounded-full shrink-0 ${paymentMethod === 'cash' ? 'bg-green-500 text-white' :  'bg-slate-100 text-slate-500 group-hover:bg-green-100 group-hover:text-green-600'}`}>
+                      <Banknote className="w-4 h-4 md:w-6 md:h-6" />
                     </div>
                     <div className="text-center md:text-left">
-                      <div className={`font-bold text-sm md:text-base ${paymentMethod === 'cash' ?  'text-green-800' : 'text-slate-700'}`}>เงินสด</div>
+                      <div className={`font-bold text-xs md:text-base ${paymentMethod === 'cash' ?  'text-green-800' : 'text-slate-700'}`}>เงินสด</div>
                       <div className="hidden md:block text-xs text-slate-400">ชำระด้วยธนบัตร</div>
                     </div>
-                    {paymentMethod === 'cash' && <CheckCircle2 className="absolute top-2 right-2 md:top-auto md:right-4 w-5 h-5 md:w-6 md:h-6 text-green-500" />}
+                    {paymentMethod === 'cash' && <CheckCircle2 className="absolute top-1 right-1 md:top-auto md:right-4 w-4 h-4 md:w-6 md:h-6 text-green-500" />}
                   </button>
                   
                   <button
                     onClick={() => setPaymentMethod('promptpay')}
-                    className={`relative p-3 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-4 transition-all group ${
+                    className={`relative p-2 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-4 transition-all group ${
                       paymentMethod === 'promptpay' 
                         ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200 ring-offset-2' 
                         : 'border-slate-100 bg-white hover:border-blue-300 hover:bg-blue-50/50'
                     }`}
                   >
-                    <div className={`p-2 md:p-3 rounded-full shrink-0 ${paymentMethod === 'promptpay' ?  'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
-                      <QrCode className="w-5 h-5 md:w-6 md: h-6" />
+                    <div className={`p-1.5 md:p-3 rounded-full shrink-0 ${paymentMethod === 'promptpay' ?  'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
+                      <QrCode className="w-4 h-4 md:w-6 md:h-6" />
                     </div>
                     <div className="text-center md:text-left">
-                      <div className={`font-bold text-sm md:text-base ${paymentMethod === 'promptpay' ? 'text-blue-800' : 'text-slate-700'}`}>PromptPay</div>
+                      <div className={`font-bold text-xs md:text-base ${paymentMethod === 'promptpay' ? 'text-blue-800' : 'text-slate-700'}`}>PromptPay</div>
                       <div className="hidden md:block text-xs text-slate-400">สแกน QR Code</div>
                     </div>
-                    {paymentMethod === 'promptpay' && <CheckCircle2 className="absolute top-2 right-2 md:top-auto md:right-4 w-5 h-5 md: w-6 md:h-6 text-blue-500" />}
+                    {paymentMethod === 'promptpay' && <CheckCircle2 className="absolute top-1 right-1 md:top-auto md:right-4 w-4 h-4 md:w-6 md:h-6 text-blue-500" />}
                   </button>
                 </div>
               </div>
 
-              {/* ✅ ส่วนคำนวณเงินทอน - แสดงเฉพาะเมื่อเลือกเงินสด */}
+              {/* Cash Calculation UI */}
               {paymentMethod === 'cash' && (
-                <div className="space-y-3 animate-in slide-in-from-top-4 duration-300">
-                  <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-green-500 rounded-full"></div>
-                    <Calculator className="w-4 h-4" />
+                <div className="space-y-2 md:space-y-3 animate-in slide-in-from-top-4 duration-300 pb-4">
+                  <div className="text-xs md:text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <div className="w-1 h-3 md:h-4 bg-green-500 rounded-full"></div>
+                    <Calculator className="w-3 h-3 md:w-4 md:h-4" />
                     คำนวณเงินทอน
                   </div>
 
-                  {/* ปุ่มเลือกจำนวนเงิน */}
                   <div className="grid grid-cols-3 gap-2">
-                    {suggestedBills. map((amount) => (
+                    {suggestedBills.map((amount) => (
                       <button
                         key={amount}
                         onClick={() => handleSelectAmount(amount)}
-                        className={`p-3 rounded-xl border-2 transition-all text-center ${
-                          receivedAmount === amount && ! showCustomInput
+                        className={`p-2 md:p-3 rounded-xl border-2 transition-all text-center ${
+                          receivedAmount === amount && !showCustomInput
                             ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
                             : 'border-slate-200 bg-white hover:border-green-300 hover:bg-green-50/50'
                         }`}
                       >
-                        <div className={`font-bold text-sm md:text-base ${
+                        <div className={`font-bold text-xs md:text-base ${
                           receivedAmount === amount && !showCustomInput ?  'text-green-700' : 'text-slate-700'
                         }`}>
-                          ฿{amount. toLocaleString()}
+                          ฿{amount.toLocaleString()}
                         </div>
-                        {amount === totalAmount && (
-                          <div className="text-[10px] text-green-600 font-medium mt-0.5">พอดี</div>
-                        )}
                       </button>
                     ))}
                     
-                    {/* ปุ่มกรอกเอง */}
                     <button
                       onClick={() => {
                         setShowCustomInput(true)
                         setCustomAmount('')
                         setReceivedAmount(0)
                       }}
-                      className={`p-3 rounded-xl border-2 transition-all text-center ${
+                      className={`p-2 md:p-3 rounded-xl border-2 transition-all text-center ${
                         showCustomInput
                           ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
-                          : 'border-dashed border-slate-300 bg-slate-50 hover: border-green-300 hover:bg-green-50/50'
+                          : 'border-dashed border-slate-300 bg-slate-50 hover:border-green-300 hover:bg-green-50/50'
                       }`}
                     >
-                      <BadgeDollarSign className={`w-5 h-5 mx-auto ${showCustomInput ? 'text-green-600' : 'text-slate-400'}`} />
-                      <div className={`text-xs font-medium mt-1 ${showCustomInput ? 'text-green-700' : 'text-slate-500'}`}>
+                      <BadgeDollarSign className={`w-4 h-4 md:w-5 md:h-5 mx-auto ${showCustomInput ? 'text-green-600' : 'text-slate-400'}`} />
+                      <div className={`text-[10px] md:text-xs font-medium mt-0.5 ${showCustomInput ? 'text-green-700' : 'text-slate-500'}`}>
                         กรอกเอง
                       </div>
                     </button>
                   </div>
 
-                  {/* Input กรอกจำนวนเงินเอง */}
                   {showCustomInput && (
                     <div className="relative animate-in slide-in-from-top-2 duration-200">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">฿</div>
                       <input
                         type="text"
                         inputMode="numeric"
-                        placeholder="กรอกจำนวนเงินที่รับ"
+                        placeholder="กรอกจำนวนเงิน"
                         value={customAmount}
-                        onChange={(e) => handleCustomAmountChange(e. target.value)}
-                        className="w-full pl-10 pr-4 py-4 text-xl font-bold text-center border-2 border-green-300 rounded-xl focus:outline-none focus:ring-2 focus: ring-green-400 focus:border-green-500 bg-green-50"
+                        onChange={(e) => handleCustomAmountChange(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 md:py-4 text-lg md:text-xl font-bold text-center border-2 border-green-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-500 bg-green-50"
                         autoFocus
                       />
                     </div>
                   )}
 
-                  {/* แสดงผลการคำนวณ */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-slate-600 text-sm">รับเงินมา</span>
-                      <span className="font-bold text-lg text-slate-800">฿{receivedAmount.toLocaleString()}</span>
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-3 md:p-4 border border-green-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-slate-600 text-xs md:text-sm">รับเงินมา</span>
+                      <span className="font-bold text-base md:text-lg text-slate-800">฿{receivedAmount.toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-slate-600 text-sm">ยอดที่ต้องชำระ</span>
-                      <span className="font-bold text-lg text-slate-800">฿{totalAmount.toLocaleString()}</span>
-                    </div>
-                    <div className="border-t border-green-200 pt-3">
+                    <div className="border-t border-green-200 pt-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-green-700 font-semibold flex items-center gap-2">
-                          <Coins className="w-5 h-5" />
+                        <span className="text-green-700 font-semibold flex items-center gap-2 text-sm">
+                          <Coins className="w-4 h-4" />
                           เงินทอน
                         </span>
-                        <span className={`font-black text-2xl ${
+                        <span className={`font-black text-xl md:text-2xl ${
                           changeAmount >= 0 ? 'text-green-600' : 'text-red-500'
                         }`}>
                           ฿{changeAmount.toLocaleString()}
                         </span>
                       </div>
                       {receivedAmount < totalAmount && (
-                        <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+                        <p className="text-red-500 text-[10px] md:text-xs mt-1 flex items-center gap-1 justify-end">
                           <X className="w-3 h-3" />
-                          จำนวนเงินไม่เพียงพอ ขาดอีก ฿{(totalAmount - receivedAmount).toLocaleString()}
+                          ขาดอีก ฿{(totalAmount - receivedAmount).toLocaleString()}
                         </p>
                       )}
                     </div>
@@ -908,55 +840,29 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                 </div>
               )}
 
-              {/* ส่วนอัพโหลดสลิป */}
+              {/* Upload Slip UI */}
               {paymentMethod === 'promptpay' && (
-                <div className="space-y-3 animate-in slide-in-from-top-4 duration-300 pb-20 md:pb-0">
-                  <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                    สลิปการโอน
-                    <span className="text-red-500">*</span>
+                <div className="space-y-2 md:space-y-3 animate-in slide-in-from-top-4 duration-300 pb-4">
+                  <div className="text-xs md:text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <div className="w-1 h-3 md:h-4 bg-blue-500 rounded-full"></div>
+                    สลิปการโอน <span className="text-red-500">*</span>
                   </div>
 
-                  {/* Hidden Inputs */}
-                  <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleSlipSelect}
-                    className="hidden"
-                  />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleSlipSelect}
-                    className="hidden"
-                  />
+                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleSlipSelect} className="hidden" />
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleSlipSelect} className="hidden" />
 
-                  {! slipPreview ?  (
-                    <div className="border-2 border-dashed border-blue-200 rounded-xl p-4 md:p-6 bg-blue-50/50">
-                      <div className="text-center space-y-3 md:space-y-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                          <ImageIcon className="w-6 h-6 md:w-8 md:h-8 text-blue-500" />
+                  {!slipPreview ? (
+                    <div className="border-2 border-dashed border-blue-200 rounded-xl p-3 md:p-6 bg-blue-50/50">
+                      <div className="text-center space-y-2 md:space-y-4">
+                        <div className="w-10 h-10 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                          <ImageIcon className="w-5 h-5 md:w-8 md:h-8 text-blue-500" />
                         </div>
                         <div className="flex gap-2 justify-center">
-                          <button
-                            type="button"
-                            onClick={handleOpenCamera}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg active:scale-95 text-sm md:text-base"
-                          >
-                            <Camera className="w-4 h-4 md:w-5 md:h-5" />
-                            ถ่ายรูป
+                          <button type="button" onClick={handleOpenCamera} className="flex-1 flex items-center justify-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 bg-blue-500 text-white rounded-lg md:rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg active:scale-95 text-xs md:text-base">
+                            <Camera className="w-3 h-3 md:w-5 md:h-5" /> ถ่ายรูป
                           </button>
-
-                          <button
-                            type="button"
-                            onClick={handleOpenGallery}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 md:px-4 md:py-3 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-colors border-2 border-blue-200 active:scale-95 text-sm md:text-base"
-                          >
-                            <Upload className="w-4 h-4 md:w-5 md:h-5" />
-                            เลือกไฟล์
+                          <button type="button" onClick={handleOpenGallery} className="flex-1 flex items-center justify-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 bg-white text-blue-600 rounded-lg md:rounded-xl font-bold hover:bg-blue-50 transition-colors border-2 border-blue-200 active:scale-95 text-xs md:text-base">
+                            <Upload className="w-3 h-3 md:w-5 md:h-5" /> เลือกไฟล์
                           </button>
                         </div>
                       </div>
@@ -965,17 +871,9 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                     <div className="relative">
                       <div className="border-2 border-green-300 rounded-xl overflow-hidden bg-green-50">
                         <div className="relative aspect-[4/3] bg-slate-100">
-                          <img 
-                            src={slipPreview} 
-                            alt="สลิปการโอนเงิน" 
-                            className="w-full h-full object-contain"
-                          />
+                          <img src={slipPreview} alt="สลิป" className="w-full h-full object-contain" />
                           <div className="absolute top-2 right-2">
-                            <button
-                              type="button"
-                              onClick={handleRemoveSlip}
-                              className="p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
-                            >
+                            <button type="button" onClick={handleRemoveSlip} className="p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -983,11 +881,9 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                       </div>
                     </div>
                   )}
-
-                  {paymentMethod === 'promptpay' && ! slipImage && (
+                  {paymentMethod === 'promptpay' && !slipImage && (
                     <p className="text-center text-red-500 text-xs font-medium flex items-center justify-center gap-1">
-                      <X className="w-3 h-3" />
-                      กรุณาแนบสลิปก่อนยืนยัน
+                      <X className="w-3 h-3" /> กรุณาแนบสลิป
                     </p>
                   )}
                 </div>
@@ -995,28 +891,28 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
             </div>
 
             {/* Footer Button */}
-            <div className="p-4 md: p-6 bg-white border-t border-slate-100 shrink-0">
+            <div className="p-4 md:p-6 bg-white border-t border-slate-100 shrink-0">
               <button 
                 onClick={handlePayment}
                 disabled={loading || !!error || !canConfirmPayment() || isProcessing || uploadingSlip}
-                className={`w-full py-3 md: py-4 rounded-xl md:rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg
-                  ${loading || !!error || ! canConfirmPayment() || isProcessing || uploadingSlip
+                className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg
+                  ${loading || !!error || !canConfirmPayment() || isProcessing || uploadingSlip
                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-lime-500 to-emerald-600 text-white hover:shadow-lime-200 hover:scale-[1.02] active:scale-[0.98]'
                   }
                 `}
               >
-                {isProcessing || uploadingSlip ?  (
+                {isProcessing || uploadingSlip ? (
                   <>
                     <Loader className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
-                    {uploadingSlip ?  'กำลังอัพโหลด...' : 'กำลังประมวลผล... '}
+                    {uploadingSlip ? 'กำลังอัพโหลด...' : 'กำลังประมวลผล...'}
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
                     ยืนยันการชำระเงิน
                     {paymentMethod === 'cash' && changeAmount > 0 && (
-                      <span className="text-sm opacity-80">(ทอน ฿{changeAmount.toLocaleString()})</span>
+                      <span className="text-sm opacity-80 font-medium ml-1 hidden sm:inline">(ทอน ฿{changeAmount.toLocaleString()})</span>
                     )}
                   </>
                 )}
@@ -1029,14 +925,12 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
           <DrinkSelectionModal 
             orderId={order.order_id} 
             onClose={() => setShowDrinkModal(false)}
-            onSuccess={() => {
-              fetchOrderDetails() 
-            }}
+            onSuccess={() => { fetchOrderDetails() }}
           />
         )}
       </div>
 
-      {/* Camera Modal สำหรับ PC */}
+      {/* Camera Modal (PC) */}
       {showCameraModal && (
         <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl overflow-hidden max-w-2xl w-full">
@@ -1045,65 +939,30 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                 <Video className="w-6 h-6" />
                 <span className="font-bold text-lg">ถ่ายรูปสลิป</span>
               </div>
-              <button
-                onClick={handleCloseCamera}
-                className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
-              >
+              <button onClick={handleCloseCamera} className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
                 <X className="w-5 h-5 text-white" />
               </button>
             </div>
-
             <div className="relative bg-black aspect-video">
-              {cameraError ?  (
+              {cameraError ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center p-6">
-                  <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
-                    <X className="w-8 h-8 text-red-400" />
-                  </div>
+                  <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4"><X className="w-8 h-8 text-red-400" /></div>
                   <p className="font-medium mb-2">ไม่สามารถเปิดกล้องได้</p>
                   <p className="text-sm text-gray-400">{cameraError}</p>
-                  <button
-                    onClick={handleCloseCamera}
-                    className="mt-4 px-6 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-                  >
-                    ปิด
-                  </button>
+                  <button onClick={handleCloseCamera} className="mt-4 px-6 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">ปิด</button>
                 </div>
               ) : (
                 <>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute inset-8 border-2 border-white/50 rounded-lg"></div>
-                    <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
-                      วางสลิปให้อยู่ในกรอบ
-                    </div>
-                  </div>
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 pointer-events-none"><div className="absolute inset-8 border-2 border-white/50 rounded-lg"></div><div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">วางสลิปให้อยู่ในกรอบ</div></div>
                 </>
               )}
             </div>
-
             <canvas ref={canvasRef} className="hidden" />
-
-            {! cameraError && (
+            {!cameraError && (
               <div className="p-6 bg-slate-100 flex items-center justify-center gap-4">
-                <button
-                  onClick={handleCloseCamera}
-                  className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-300 transition-colors"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  onClick={handleCapturePhoto}
-                  className="flex items-center gap-2 px-8 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg"
-                >
-                  <Circle className="w-6 h-6 fill-current" />
-                  ถ่ายรูป
-                </button>
+                <button onClick={handleCloseCamera} className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-300 transition-colors">ยกเลิก</button>
+                <button onClick={handleCapturePhoto} className="flex items-center gap-2 px-8 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg"><Circle className="w-6 h-6 fill-current" /> ถ่ายรูป</button>
               </div>
             )}
           </div>
