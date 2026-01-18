@@ -360,6 +360,7 @@ export default function SelectTable() {
   const cookingCount = takeawayOrders.filter(o => o.status.toLowerCase() === 'cooking').length
   const servedCount = takeawayOrders.filter(o => o.status.toLowerCase() === 'served').length
   
+  // ✅ TableCard - ปรับปรุงใหม่ให้รองรับ Mobile (Compact Mode)
   const TableCard = ({ table, className = '' }: { table: Table; className?:  string }) => {
     const num = getTableNumber(table.table_number)
     const statusInfo = getStatusInfo(table.current_status)
@@ -371,15 +372,15 @@ export default function SelectTable() {
     const isClickable = isVacant || isCheckout
 
     return (
-      <div className={`relative ${className}`}>
+      <div className={`relative h-full ${className}`}>
         <button
           onClick={() => isClickable && handleTableClick(table)} 
           onMouseEnter={() => setHoveredTable(String(table.id))}
           onMouseLeave={() => setHoveredTable(null)}
           disabled={!isClickable}
-          className={`w-full h-full relative rounded-xl md:rounded-2xl border-2 transition-all duration-200 flex flex-col items-center justify-center text-center p-2 md:p-3
+          className={`w-full h-full relative rounded-xl md:rounded-2xl border-2 transition-all duration-200 flex flex-col items-center justify-center text-center p-1 md:p-3
             ${isSelected 
-              ? 'shadow-xl ring-4 ring-emerald-400/50 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-400' 
+              ? 'shadow-xl ring-2 md:ring-4 ring-emerald-400/50 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-400' 
               : isVacant 
               ? 'bg-white hover:shadow-lg border-slate-200 hover:border-emerald-400' 
               :  isCheckout 
@@ -387,23 +388,32 @@ export default function SelectTable() {
               : 'bg-slate-100 opacity-60 cursor-not-allowed border-slate-200'}
           `}
         >
-          <div className={`mb-1 transition-transform ${isHovered && isClickable && !isSelected ? 'scale-110' : ''}`}>
+          {/* Icon - Smaller on Mobile */}
+          <div className={`mb-0.5 md:mb-1 transition-transform ${isHovered && isClickable && !isSelected ? 'scale-110' : ''}`}>
             {isCheckout ?  (
-              <Banknote className={`w-6 h-6 md:w-8 md:h-8 ${isSelected ? 'text-white' : 'text-lime-600'}`} />
+              <Banknote className={`w-4 h-4 md:w-8 md:h-8 ${isSelected ? 'text-white' : 'text-lime-600'}`} />
             ) : (
-              <UtensilsCrossed className={`w-6 h-6 md:w-8 md:h-8 ${isSelected ?  'text-white' : 'text-slate-400'}`} />
+              <UtensilsCrossed className={`w-4 h-4 md:w-8 md:h-8 ${isSelected ?  'text-white' : 'text-slate-400'}`} />
             )}
           </div>
-          <div className={`font-black text-lg md:text-2xl ${isSelected ? 'text-white' : isCheckout ? 'text-lime-800' : 'text-slate-800'}`}>{num}</div>
-          <div className={`text-[10px] md:text-xs mt-1 ${isSelected ? 'text-white/80' : isCheckout ? 'text-lime-700' : 'text-slate-500'}`}>{table.seat_capacity || 0} ที่นั่ง</div>
-          <div className="absolute bottom-1 left-1 md:bottom-2 md:left-2">
-            <span className={`${statusInfo.badgeBg} ${statusInfo.badgeColor} px-1.5 py-0.5 md:px-2 md:py-0.5 rounded-full text-[9px] md:text-[10px] font-bold`}>{statusInfo.label}</span>
+
+          {/* Table Number */}
+          <div className={`font-black text-sm sm:text-base md:text-2xl ${isSelected ? 'text-white' : isCheckout ? 'text-lime-800' : 'text-slate-800'}`}>{num}</div>
+          
+          {/* Seat Capacity */}
+          <div className={`text-[9px] md:text-xs mt-0.5 ${isSelected ? 'text-white/80' : isCheckout ? 'text-lime-700' : 'text-slate-500'}`}>{table.seat_capacity || 0} ที่</div>
+          
+          {/* Status Badge - Absolute Position Bottom */}
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-2 md:bottom-2 w-full md:w-auto px-1">
+            <span className={`block w-full md:w-auto ${statusInfo.badgeBg} ${statusInfo.badgeColor} px-1 py-0.5 rounded md:rounded-full text-[8px] md:text-[10px] font-bold truncate`}>
+                {statusInfo.label}
+            </span>
           </div>
         </button>
         {isSelected && (
-          <div className="absolute -top-2 -right-2 z-10">
-            <div className="bg-emerald-500 rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center shadow-lg ring-2 ring-white">
-              <Check className="w-3 h-3 md:w-4 md:h-4 text-white" />
+          <div className="absolute -top-1 -right-1 md:-top-2 md:-right-2 z-10">
+            <div className="bg-emerald-500 rounded-full w-5 h-5 md:w-8 md:h-8 flex items-center justify-center shadow-lg ring-2 ring-white">
+              <Check className="w-2.5 h-2.5 md:w-4 md:h-4 text-white" />
             </div>
           </div>
         )}
@@ -597,27 +607,30 @@ export default function SelectTable() {
             <div className="bg-white/60 backdrop-blur rounded-2xl p-4 md:p-6 shadow-lg border">
               <h2 className="text-sm font-bold text-slate-600 mb-4 flex items-center gap-2"><LayoutGrid className="w-4 h-4" /> ผังโต๊ะร้าน</h2>
               
-              {/* Responsive Map Container with Scroll */}
-              <div className="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
-                <div className="min-w-[500px] md:min-w-0 grid grid-cols-4 gap-2 md:gap-4 max-w-3xl mx-auto">
-                  <div className="h-24 md:h-32"></div>
-                  <div className="h-24 md:h-32">{getTable(1) && <TableCard table={getTable(1)!} className="h-full" />}</div>
-                  <div className="h-24 md:h-32"></div>
-                  <div className="h-24 md:h-32">{getTable(5) && <TableCard table={getTable(5)!} className="h-full" />}</div>
-                  <div className="h-24 md:h-32">{getTable(3) && <TableCard table={getTable(3)!} className="h-full" />}</div>
-                  <div className="h-24 md:h-32">{getTable(2) && <TableCard table={getTable(2)!} className="h-full" />}</div>
-                  <div className="h-24 md:h-32"></div>
-                  <div className="h-24 md:h-32">{getTable(6) && <TableCard table={getTable(6)!} className="h-full" />}</div>
-                  <div className="col-span-2 h-28 md:h-40">{getTable(4) && <TableCard table={getTable(4)!} className="h-full" />}</div>
-                  <div className="h-28 md:h-40"></div>
-                  <div className="h-28 md:h-40">{getTable(7) && <TableCard table={getTable(7)!} className="h-full" />}</div>
+              {/* Responsive Grid Map - NO SCROLL */}
+              <div className="w-full px-0">
+                <div className="grid grid-cols-4 gap-2 md:gap-4 max-w-3xl mx-auto w-full">
+                  
+                  {/* Row 1 */}
+                  <div className="aspect-square md:aspect-[4/3] w-full"></div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(1) && <TableCard table={getTable(1)!} />}</div>
+                  <div className="aspect-square md:aspect-[4/3] w-full"></div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(5) && <TableCard table={getTable(5)!} />}</div>
+                  
+                  {/* Row 2 */}
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(3) && <TableCard table={getTable(3)!} />}</div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(2) && <TableCard table={getTable(2)!} />}</div>
+                  <div className="aspect-square md:aspect-[4/3] w-full"></div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(6) && <TableCard table={getTable(6)!} />}</div>
+                  
+                  {/* Row 3 - Table 4 spans 2 cols */}
+                  <div className="col-span-2 aspect-[2/1] md:aspect-[8/3] w-full">{getTable(4) && <TableCard table={getTable(4)!} />}</div>
+                  <div className="aspect-square md:aspect-[4/3] w-full"></div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(7) && <TableCard table={getTable(7)!} />}</div>
+                  
                 </div>
               </div>
               
-              {/* Mobile Scroll Hint */}
-              <div className="md:hidden text-center text-xs text-slate-400 mt-2 flex items-center justify-center gap-1">
-                <LayoutGrid className="w-3 h-3" /> เลื่อนซ้าย-ขวาเพื่อดูโต๊ะทั้งหมด
-              </div>
             </div>
           </section>
 
