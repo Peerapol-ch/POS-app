@@ -496,32 +496,38 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
   return (
     <>
-      {/* Container: Full screen on mobile (p-0), Popup on Desktop (p-4) */}
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
-        <div className="bg-white rounded-none md:rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-full md:h-[90vh]">
+      {/* Container: 
+          แก้ h-full เป็น h-[100dvh] เพื่อแก้ปัญหา Address Bar ในมือถือบัง
+      */}
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+        
+        {/* Main Card */}
+        <div className="bg-white w-full max-w-5xl flex flex-col md:flex-row 
+          h-[100dvh] md:h-[90vh] md:rounded-3xl shadow-2xl overflow-hidden relative">
           
-          {/* Left Column (Order Items) 
-              Mobile: h-[35vh] fixed height to show summary 
-              Desktop: Full height flex column 
+          {/* ==================== LEFT COLUMN (Order Items) ==================== 
+              Mobile: ลดความสูงเหลือ h-[25vh] เพื่อแบ่งที่ให้ส่วนจ่ายเงิน
+              Desktop: h-full เหมือนเดิม
           */}
-          <div className="w-full md:flex-1 flex flex-col bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 relative h-[35vh] md:h-full">
+          <div className="w-full md:flex-1 flex flex-col bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 
+            h-[25vh] md:h-full shrink-0">
             
             {/* Header Area */}
             <div className="p-3 md:p-6 bg-white border-b border-slate-100 flex justify-between items-center shadow-sm z-10 shrink-0">
               <div>
-                <h2 className="text-lg md:text-2xl font-black text-slate-800 flex items-center gap-2">
-                  <Receipt className="w-5 h-5 md:w-6 md:h-6 text-lime-600" />
-                  ใบรายการอาหาร
+                <h2 className="text-base md:text-2xl font-black text-slate-800 flex items-center gap-2">
+                  <Receipt className="w-4 h-4 md:w-6 md:h-6 text-lime-600" />
+                  ใบรายการ
                 </h2>
                 <p className="text-slate-500 text-xs md:text-sm mt-1 hidden md:block">ตรวจสอบรายการก่อนชำระเงิน</p>
-                <p className="text-slate-500 text-xs mt-1 md:hidden">{tableName}</p>
+                <p className="text-slate-500 text-[10px] mt-0.5 md:hidden truncate max-w-[150px]">{tableName}</p>
               </div>
               
               <div className="flex items-center gap-2">
                 {order && (
                   <button 
                     onClick={() => setShowDrinkModal(true)}
-                    className="flex items-center gap-1 md:gap-2 bg-blue-50 text-blue-600 px-2 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm text-xs md:text-base"
+                    className="flex items-center gap-1 md:gap-2 bg-blue-50 text-blue-600 px-2 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm text-[10px] md:text-base"
                   >
                     <Plus className="w-3 h-3 md:w-4 md:h-4" />
                     <span className="hidden sm:inline">เพิ่มน้ำ</span>
@@ -529,52 +535,52 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                   </button>
                 )}
                 {/* Mobile Close Button */}
-                <button onClick={onClose} className="md:hidden p-2 bg-slate-100 rounded-full hover:bg-red-50 hover:text-red-500">
-                   <X className="w-5 h-5" />
+                <button onClick={onClose} className="md:hidden p-1.5 bg-slate-100 rounded-full hover:bg-red-50 hover:text-red-500">
+                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto p-3 md:p-6 scroll-smooth bg-slate-50">
+            <div className="flex-1 overflow-y-auto p-2 md:p-6 scroll-smooth bg-slate-50">
               
               {/* Member Info */}
               {order?.customer && (
-                <div className="mb-3 md:mb-4 p-3 md:p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 shadow-sm">
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shrink-0">
+                <div className="mb-2 md:mb-4 p-2 md:p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg md:rounded-xl border border-purple-200 shadow-sm">
+                  <div className="flex items-center gap-2 md:gap-4">
+                    <div className="w-8 h-8 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg md:rounded-xl flex items-center justify-center text-white shadow-lg shrink-0">
                       {order.customer.avatar_url ? (
-                        <img src={order.customer.avatar_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                        <img src={order.customer.avatar_url} alt="" className="w-full h-full object-cover rounded-lg md:rounded-xl" />
                       ) : (
-                        <User className="w-5 h-5 md:w-6 md:h-6" />
+                        <User className="w-4 h-4 md:w-6 md:h-6" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 md:gap-2">
                         <UserCheck className="w-3 h-3 md:w-4 md:h-4 text-purple-600" />
                         <span className="text-[10px] md:text-xs text-purple-600 font-medium">สมาชิก</span>
                       </div>
-                      <p className="font-bold text-sm md:text-base text-slate-800 truncate">{order.customer.username || 'ลูกค้า'}</p>
+                      <p className="font-bold text-xs md:text-base text-slate-800 truncate">{order.customer.username || 'ลูกค้า'}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <div className="flex items-center gap-1 text-amber-600 justify-end">
                         <Star className="w-3 h-3 md:w-4 md:h-4" />
-                        <span className="font-bold text-sm md:text-base">{order.customer.points || 0}</span>
+                        <span className="font-bold text-xs md:text-base">{order.customer.points || 0}</span>
                       </div>
                       <p className="text-[10px] md:text-xs text-slate-500">คะแนนสะสม</p>
                     </div>
                   </div>
 
                   {earnedPoints > 0 && (
-                    <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-purple-200">
+                    <div className="mt-1 md:mt-3 pt-1 md:pt-3 border-t border-purple-200">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-emerald-600">
                           <Gift className="w-3 h-3 md:w-4 md:h-4" />
-                          <span className="text-xs md:text-sm font-medium">คะแนนที่จะได้รับ</span>
+                          <span className="text-[10px] md:text-sm font-medium">คะแนนที่จะได้รับ</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-amber-500" />
-                          <span className="font-bold text-xs md:text-sm text-emerald-600">+{earnedPoints} คะแนน</span>
+                          <span className="font-bold text-[10px] md:text-sm text-emerald-600">+{earnedPoints} คะแนน</span>
                         </div>
                       </div>
                     </div>
@@ -583,20 +589,20 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               )}
 
               {loading ?  (
-                <div className="flex flex-col items-center justify-center h-32 md:h-full space-y-4">
-                  <Loader className="w-8 h-8 md:w-10 md:h-10 text-lime-500 animate-spin" />
-                  <p className="text-xs md:text-sm text-slate-400 font-medium">กำลังดึงข้อมูล...</p>
+                <div className="flex flex-col items-center justify-center h-24 md:h-full space-y-4">
+                  <Loader className="w-6 h-6 md:w-10 md:h-10 text-lime-500 animate-spin" />
+                  <p className="text-[10px] md:text-sm text-slate-400 font-medium">กำลังดึงข้อมูล...</p>
                 </div>
               ) : error ? (
-                <div className="flex flex-col items-center justify-center h-32 md:h-full text-center">
-                  <div className="bg-red-100 p-3 md:p-4 rounded-full mb-3 md:mb-4">
-                    <X className="w-6 h-6 md:w-8 md:h-8 text-red-500" />
+                <div className="flex flex-col items-center justify-center h-24 md:h-full text-center">
+                  <div className="bg-red-100 p-2 md:p-4 rounded-full mb-2 md:mb-4">
+                    <X className="w-5 h-5 md:w-8 md:h-8 text-red-500" />
                   </div>
-                  <h3 className="text-base md:text-lg font-bold text-slate-700">ไม่พบข้อมูล</h3>
-                  <p className="text-xs md:text-sm text-slate-500">{error}</p>
+                  <h3 className="text-sm md:text-lg font-bold text-slate-700">ไม่พบข้อมูล</h3>
+                  <p className="text-[10px] md:text-sm text-slate-500">{error}</p>
                 </div>
               ) : order ? (
-                <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-lg md:rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[300px] md:min-w-[350px]">
                       <thead>
@@ -651,13 +657,16 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
             </div>
           </div>
 
-          {/* Right Column (Payment & Actions)
-              Mobile: flex-1 to take remaining space
-              Desktop: Fixed width 420px
+          {/* ==================== RIGHT COLUMN (Payment & Actions) ==================== 
+              Mobile: flex-1 (กินพื้นที่ที่เหลือทั้งหมด) + min-h-0 (สำคัญมากเพื่อให้ลูก scroll ได้)
           */}
-          <div className="w-full md:w-[420px] bg-white flex flex-col flex-1 md:h-full shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-l-xl z-20 md:border-l border-slate-200">
+          <div className="w-full md:w-[420px] bg-white flex flex-col flex-1 min-h-0 md:h-full shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-l-xl z-20 md:border-l border-slate-200 relative">
             
-            <div className="p-4 md:p-6 flex-1 flex flex-col gap-3 md:gap-5 overflow-y-auto bg-white">
+            {/* SCROLLABLE AREA:
+                ใช้ flex-1 และ overflow-y-auto เพื่อให้พื้นที่นี้เลื่อนได้ 
+                โดยไม่กระทบ Header หรือ Footer 
+            */}
+            <div className="flex-1 overflow-y-auto p-3 md:p-6 flex flex-col gap-3 md:gap-5 bg-white pb-20 md:pb-6">
               
               <div className="hidden md:flex justify-end mb-2">
                 <button onClick={onClose} className="group p-2 hover:bg-red-50 rounded-full transition-colors flex items-center gap-2 text-slate-400 hover:text-red-500 text-sm font-medium">
@@ -688,11 +697,11 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               )}
 
               {/* Total Amount Badge */}
-              <div className="bg-lime-50 rounded-2xl p-3 md:p-5 border-2 border-lime-100 text-center space-y-0.5 md:space-y-1 shrink-0">
+              <div className="bg-lime-50 rounded-xl md:rounded-2xl p-2 md:p-5 border-2 border-lime-100 text-center space-y-0.5 md:space-y-1 shrink-0">
                 <div className="text-lime-700 font-semibold text-[10px] md:text-sm uppercase tracking-widest">ยอดสุทธิที่ต้องชำระ</div>
-                <div className="text-3xl md:text-4xl font-black text-lime-600 font-mono tracking-tighter">
+                <div className="text-2xl md:text-4xl font-black text-lime-600 font-mono tracking-tighter">
                   {totalAmount.toLocaleString()}
-                  <span className="text-sm md:text-base text-lime-500 font-bold ml-2">THB</span>
+                  <span className="text-xs md:text-base text-lime-500 font-bold ml-1 md:ml-2">THB</span>
                 </div>
                 {order?.customer_id && earnedPoints > 0 && (
                   <div className="flex items-center justify-center gap-2 mt-1 md:mt-2 text-emerald-600">
@@ -708,211 +717,141 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                   <div className="w-1 h-3 md:h-4 bg-lime-500 rounded-full"></div>
                   วิธีการชำระเงิน
                 </div>
+                {/* ปุ่มเลือก Cash/PromptPay */}
                 <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
-                  <button
-                    onClick={() => {
-                      setPaymentMethod('cash')
-                      handleRemoveSlip()
-                    }}
-                    className={`relative p-2 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-4 transition-all group ${
-                      paymentMethod === 'cash' 
-                        ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-200 ring-offset-2' 
-                        :  'border-slate-100 bg-white hover:border-green-300 hover:bg-green-50/50'
-                    }`}
-                  >
-                    <div className={`p-1.5 md:p-3 rounded-full shrink-0 ${paymentMethod === 'cash' ? 'bg-green-500 text-white' :  'bg-slate-100 text-slate-500 group-hover:bg-green-100 group-hover:text-green-600'}`}>
-                      <Banknote className="w-4 h-4 md:w-6 md:h-6" />
-                    </div>
-                    <div className="text-center md:text-left">
-                      <div className={`font-bold text-xs md:text-base ${paymentMethod === 'cash' ?  'text-green-800' : 'text-slate-700'}`}>เงินสด</div>
-                      <div className="hidden md:block text-xs text-slate-400">ชำระด้วยธนบัตร</div>
-                    </div>
-                    {paymentMethod === 'cash' && <CheckCircle2 className="absolute top-1 right-1 md:top-auto md:right-4 w-4 h-4 md:w-6 md:h-6 text-green-500" />}
-                  </button>
-                  
-                  <button
-                    onClick={() => setPaymentMethod('promptpay')}
-                    className={`relative p-2 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-4 transition-all group ${
-                      paymentMethod === 'promptpay' 
-                        ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200 ring-offset-2' 
-                        : 'border-slate-100 bg-white hover:border-blue-300 hover:bg-blue-50/50'
-                    }`}
-                  >
-                    <div className={`p-1.5 md:p-3 rounded-full shrink-0 ${paymentMethod === 'promptpay' ?  'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
-                      <QrCode className="w-4 h-4 md:w-6 md:h-6" />
-                    </div>
-                    <div className="text-center md:text-left">
-                      <div className={`font-bold text-xs md:text-base ${paymentMethod === 'promptpay' ? 'text-blue-800' : 'text-slate-700'}`}>PromptPay</div>
-                      <div className="hidden md:block text-xs text-slate-400">สแกน QR Code</div>
-                    </div>
-                    {paymentMethod === 'promptpay' && <CheckCircle2 className="absolute top-1 right-1 md:top-auto md:right-4 w-4 h-4 md:w-6 md:h-6 text-blue-500" />}
-                  </button>
+                   <button 
+                      onClick={() => { setPaymentMethod('cash'); handleRemoveSlip(); }}
+                      className={`relative p-2 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center gap-1 md:gap-4 transition-all ${paymentMethod === 'cash' ? 'border-green-500 bg-green-50 shadow-md' : 'border-slate-100 bg-white'}`}
+                   >
+                      <Banknote className={`w-5 h-5 md:w-6 md:h-6 ${paymentMethod === 'cash' ? 'text-green-600' : 'text-slate-400'}`} />
+                      <span className={`text-xs md:text-base font-bold ${paymentMethod === 'cash' ? 'text-green-800' : 'text-slate-600'}`}>เงินสด</span>
+                      {paymentMethod === 'cash' && <CheckCircle2 className="absolute top-1 right-1 text-green-500 w-4 h-4" />}
+                   </button>
+
+                   <button 
+                      onClick={() => setPaymentMethod('promptpay')}
+                      className={`relative p-2 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center gap-1 md:gap-4 transition-all ${paymentMethod === 'promptpay' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-100 bg-white'}`}
+                   >
+                      <QrCode className={`w-5 h-5 md:w-6 md:h-6 ${paymentMethod === 'promptpay' ? 'text-blue-600' : 'text-slate-400'}`} />
+                      <span className={`text-xs md:text-base font-bold ${paymentMethod === 'promptpay' ? 'text-blue-800' : 'text-slate-600'}`}>PromptPay</span>
+                      {paymentMethod === 'promptpay' && <CheckCircle2 className="absolute top-1 right-1 text-blue-500 w-4 h-4" />}
+                   </button>
                 </div>
               </div>
 
               {/* Cash Calculation UI */}
               {paymentMethod === 'cash' && (
-                <div className="space-y-2 md:space-y-3 animate-in slide-in-from-top-4 duration-300 pb-4">
+                <div className="space-y-2 md:space-y-3 animate-in slide-in-from-top-4 duration-300">
                   <div className="text-xs md:text-sm font-bold text-slate-800 flex items-center gap-2">
                     <div className="w-1 h-3 md:h-4 bg-green-500 rounded-full"></div>
                     <Calculator className="w-3 h-3 md:w-4 md:h-4" />
                     คำนวณเงินทอน
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
+                  {/* Grid ปุ่มตัวเลข (ทำให้เล็กลงหน่อยในมือถือ) */}
+                  <div className="grid grid-cols-3 gap-1.5 md:gap-2">
                     {suggestedBills.map((amount) => (
                       <button
                         key={amount}
                         onClick={() => handleSelectAmount(amount)}
-                        className={`p-2 md:p-3 rounded-xl border-2 transition-all text-center ${
-                          receivedAmount === amount && !showCustomInput
-                            ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
-                            : 'border-slate-200 bg-white hover:border-green-300 hover:bg-green-50/50'
-                        }`}
+                        className={`p-2 rounded-lg md:rounded-xl border transition-all text-center ${receivedAmount === amount && !showCustomInput ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 bg-white text-slate-700'}`}
                       >
-                        <div className={`font-bold text-xs md:text-base ${
-                          receivedAmount === amount && !showCustomInput ?  'text-green-700' : 'text-slate-700'
-                        }`}>
-                          ฿{amount.toLocaleString()}
-                        </div>
+                        <div className="font-bold text-xs md:text-base">฿{amount.toLocaleString()}</div>
                       </button>
                     ))}
-                    
                     <button
-                      onClick={() => {
-                        setShowCustomInput(true)
-                        setCustomAmount('')
-                        setReceivedAmount(0)
-                      }}
-                      className={`p-2 md:p-3 rounded-xl border-2 transition-all text-center ${
-                        showCustomInput
-                          ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
-                          : 'border-dashed border-slate-300 bg-slate-50 hover:border-green-300 hover:bg-green-50/50'
-                      }`}
+                        onClick={() => { setShowCustomInput(true); setCustomAmount(''); setReceivedAmount(0); }}
+                        className={`p-2 rounded-lg md:rounded-xl border border-dashed transition-all text-center ${showCustomInput ? 'border-green-500 bg-green-50' : 'border-slate-300'}`}
                     >
-                      <BadgeDollarSign className={`w-4 h-4 md:w-5 md:h-5 mx-auto ${showCustomInput ? 'text-green-600' : 'text-slate-400'}`} />
-                      <div className={`text-[10px] md:text-xs font-medium mt-0.5 ${showCustomInput ? 'text-green-700' : 'text-slate-500'}`}>
-                        กรอกเอง
-                      </div>
+                        <div className="text-[10px] md:text-xs">กรอกเอง</div>
                     </button>
                   </div>
 
+                  {/* Custom Input */}
                   {showCustomInput && (
-                    <div className="relative animate-in slide-in-from-top-2 duration-200">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">฿</div>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="กรอกจำนวนเงิน"
-                        value={customAmount}
-                        onChange={(e) => handleCustomAmountChange(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 md:py-4 text-lg md:text-xl font-bold text-center border-2 border-green-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-500 bg-green-50"
-                        autoFocus
-                      />
+                    <div className="relative">
+                       <input 
+                          type="number" pattern="[0-9]*" inputMode="numeric"
+                          value={customAmount}
+                          onChange={(e) => handleCustomAmountChange(e.target.value)}
+                          placeholder="จำนวนเงิน"
+                          className="w-full p-2 md:p-3 text-center border-2 border-green-300 rounded-xl bg-green-50 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          autoFocus
+                       />
                     </div>
                   )}
 
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-3 md:p-4 border border-green-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-slate-600 text-xs md:text-sm">รับเงินมา</span>
-                      <span className="font-bold text-base md:text-lg text-slate-800">฿{receivedAmount.toLocaleString()}</span>
-                    </div>
-                    <div className="border-t border-green-200 pt-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-green-700 font-semibold flex items-center gap-2 text-sm">
-                          <Coins className="w-4 h-4" />
-                          เงินทอน
-                        </span>
-                        <span className={`font-black text-xl md:text-2xl ${
-                          changeAmount >= 0 ? 'text-green-600' : 'text-red-500'
-                        }`}>
-                          ฿{changeAmount.toLocaleString()}
-                        </span>
-                      </div>
-                      {receivedAmount < totalAmount && (
-                        <p className="text-red-500 text-[10px] md:text-xs mt-1 flex items-center gap-1 justify-end">
-                          <X className="w-3 h-3" />
-                          ขาดอีก ฿{(totalAmount - receivedAmount).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
+                  {/* เงินทอน Display */}
+                  <div className="bg-slate-50 rounded-xl p-2 md:p-4 border border-slate-200 flex justify-between items-center">
+                     <span className="text-xs text-slate-500">เงินทอน</span>
+                     <span className={`font-black text-lg md:text-2xl ${changeAmount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        ฿{changeAmount.toLocaleString()}
+                     </span>
                   </div>
+                  {receivedAmount < totalAmount && receivedAmount > 0 && (
+                     <p className="text-red-500 text-[10px] md:text-xs text-right mt-1">ขาดอีก ฿{(totalAmount - receivedAmount).toLocaleString()}</p>
+                  )}
                 </div>
               )}
 
               {/* Upload Slip UI */}
               {paymentMethod === 'promptpay' && (
-                <div className="space-y-2 md:space-y-3 animate-in slide-in-from-top-4 duration-300 pb-4">
-                  <div className="text-xs md:text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <div className="w-1 h-3 md:h-4 bg-blue-500 rounded-full"></div>
-                    สลิปการโอน <span className="text-red-500">*</span>
-                  </div>
+                <div className="space-y-2 md:space-y-3 animate-in slide-in-from-top-4 duration-300">
+                   <div className="text-xs md:text-sm font-bold text-slate-800 flex items-center gap-2">
+                     <div className="w-1 h-3 md:h-4 bg-blue-500 rounded-full"></div>
+                     สลิปการโอน <span className="text-red-500">*</span>
+                   </div>
 
-                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleSlipSelect} className="hidden" />
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleSlipSelect} className="hidden" />
+                   <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleSlipSelect} className="hidden" />
+                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleSlipSelect} className="hidden" />
 
-                  {!slipPreview ? (
-                    <div className="border-2 border-dashed border-blue-200 rounded-xl p-3 md:p-6 bg-blue-50/50">
-                      <div className="text-center space-y-2 md:space-y-4">
-                        <div className="w-10 h-10 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                          <ImageIcon className="w-5 h-5 md:w-8 md:h-8 text-blue-500" />
-                        </div>
-                        <div className="flex gap-2 justify-center">
-                          <button type="button" onClick={handleOpenCamera} className="flex-1 flex items-center justify-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 bg-blue-500 text-white rounded-lg md:rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg active:scale-95 text-xs md:text-base">
-                            <Camera className="w-3 h-3 md:w-5 md:h-5" /> ถ่ายรูป
-                          </button>
-                          <button type="button" onClick={handleOpenGallery} className="flex-1 flex items-center justify-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-3 bg-white text-blue-600 rounded-lg md:rounded-xl font-bold hover:bg-blue-50 transition-colors border-2 border-blue-200 active:scale-95 text-xs md:text-base">
-                            <Upload className="w-3 h-3 md:w-5 md:h-5" /> เลือกไฟล์
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <div className="border-2 border-green-300 rounded-xl overflow-hidden bg-green-50">
-                        <div className="relative aspect-[4/3] bg-slate-100">
-                          <img src={slipPreview} alt="สลิป" className="w-full h-full object-contain" />
-                          <div className="absolute top-2 right-2">
-                            <button type="button" onClick={handleRemoveSlip} className="p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors">
-                              <Trash2 className="w-4 h-4" />
+                   {!slipPreview ? (
+                      <div className="border-2 border-dashed border-blue-200 rounded-xl p-3 bg-blue-50/50 text-center">
+                         <div className="flex gap-2 justify-center mt-2">
+                            <button type="button" onClick={handleOpenCamera} className="flex-1 py-2 bg-blue-500 text-white rounded-lg text-xs font-bold shadow-md flex items-center justify-center gap-1">
+                               <Camera className="w-3 h-3" /> ถ่ายรูป
                             </button>
-                          </div>
-                        </div>
+                            <button type="button" onClick={handleOpenGallery} className="flex-1 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1">
+                               <Upload className="w-3 h-3" /> เลือกรูป
+                            </button>
+                         </div>
                       </div>
-                    </div>
-                  )}
-                  {paymentMethod === 'promptpay' && !slipImage && (
-                    <p className="text-center text-red-500 text-xs font-medium flex items-center justify-center gap-1">
-                      <X className="w-3 h-3" /> กรุณาแนบสลิป
-                    </p>
-                  )}
+                   ) : (
+                      <div className="relative border-2 border-green-300 rounded-xl overflow-hidden bg-slate-100 aspect-video">
+                         <img src={slipPreview} className="w-full h-full object-contain" />
+                         <button onClick={handleRemoveSlip} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full"><Trash2 className="w-4 h-4"/></button>
+                      </div>
+                   )}
                 </div>
               )}
             </div>
 
-            {/* Footer Button */}
-            <div className="p-4 md:p-6 bg-white border-t border-slate-100 shrink-0">
+            {/* ==================== FOOTER BUTTON (FIXED BOTTOM) ==================== 
+                ใช้ shrink-0 เพื่อไม่ให้โดนบีบ และ z-30 เพื่อให้ลอยอยู่เหนือ content
+                เพิ่ม pb-safe เพื่อรองรับ iPhone
+            */}
+            <div className="p-3 md:p-6 bg-white border-t border-slate-100 shrink-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] pb-safe">
               <button 
                 onClick={handlePayment}
                 disabled={loading || !!error || !canConfirmPayment() || isProcessing || uploadingSlip}
-                className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 md:gap-3 text-base md:text-lg
+                className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 text-sm md:text-lg
                   ${loading || !!error || !canConfirmPayment() || isProcessing || uploadingSlip
                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-lime-500 to-emerald-600 text-white hover:shadow-lime-200 hover:scale-[1.02] active:scale-[0.98]'
+                    : 'bg-gradient-to-r from-lime-500 to-emerald-600 text-white hover:shadow-lime-200 active:scale-[0.98]'
                   }
                 `}
               >
                 {isProcessing || uploadingSlip ? (
                   <>
-                    <Loader className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
-                    {uploadingSlip ? 'กำลังอัพโหลด...' : 'กำลังประมวลผล...'}
+                    <Loader className="w-5 h-5 animate-spin" />
+                    <span>กำลังประมวลผล...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
-                    ยืนยันการชำระเงิน
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>ยืนยันการชำระเงิน</span>
                     {paymentMethod === 'cash' && changeAmount > 0 && (
-                      <span className="text-sm opacity-80 font-medium ml-1 hidden sm:inline">(ทอน ฿{changeAmount.toLocaleString()})</span>
+                      <span className="text-white/90 text-xs ml-1 font-normal">(ทอน ฿{changeAmount.toLocaleString()})</span>
                     )}
                   </>
                 )}

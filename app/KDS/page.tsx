@@ -292,7 +292,6 @@ export default function KitchenDisplay() {
               </div>
               <div>
                 <h1 className="text-xl font-black text-stone-800 tracking-tight">ระบบครัว</h1>
-                <p className="text-xs text-stone-500 font-medium -mt-1">KDS Display</p>
               </div>
             </div>
 
