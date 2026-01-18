@@ -270,20 +270,24 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   }
 
   const handleOpenCamera = async () => {
+    // NOTE: ตัดส่วนเช็ค isMobile ออก เพื่อบังคับใช้ Modal ของเราแทน Native Camera
+    // ถ้าต้องการใช้ Native Camera ให้ Uncomment ด้านล่าง
+    /*
     if (isMobile()) {
       if (cameraInputRef.current) {
         cameraInputRef.current.click()
       }
       return
     }
+    */
+
     setCameraError(null)
     setShowCameraModal(true)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          // ไม่ fix width/height เพื่อให้ browser ปรับตาม ratio ของอุปกรณ์
         }
       })
       setCameraStream(stream)
@@ -864,42 +868,99 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
         )}
       </div>
 
-      {/* Camera Modal (PC) */}
+      {/* Camera Modal (Mobile & PC Optimized) */}
       {showCameraModal && (
-        <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl overflow-hidden max-w-2xl w-full">
-            <div className="bg-blue-500 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3 text-white">
-                <Video className="w-6 h-6" />
-                <span className="font-bold text-lg">ถ่ายรูปสลิป</span>
-              </div>
-              <button onClick={handleCloseCamera} className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                <X className="w-5 h-5 text-white" />
-              </button>
+        <div className="fixed inset-0 bg-black z-[60] flex flex-col animate-in fade-in duration-200">
+          
+          {/* Header (Top Bar) */}
+          <div className="absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-start bg-gradient-to-b from-black/60 to-transparent pt-safe">
+            <div className="text-white">
+              <h3 className="font-bold text-lg">ถ่ายรูปสลิป</h3>
+              <p className="text-xs text-gray-300">วางสลิปให้อยู่ในกรอบ</p>
             </div>
-            <div className="relative bg-black aspect-video">
-              {cameraError ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center p-6">
-                  <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4"><X className="w-8 h-8 text-red-400" /></div>
-                  <p className="font-medium mb-2">ไม่สามารถเปิดกล้องได้</p>
-                  <p className="text-sm text-gray-400">{cameraError}</p>
-                  <button onClick={handleCloseCamera} className="mt-4 px-6 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">ปิด</button>
+            <button 
+              onClick={handleCloseCamera} 
+              className="p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Main Camera Area */}
+          <div className="relative flex-1 bg-black overflow-hidden">
+            {cameraError ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center p-6 z-10">
+                <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-red-500/50">
+                  <X className="w-10 h-10 text-red-500" />
                 </div>
-              ) : (
-                <>
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 pointer-events-none"><div className="absolute inset-8 border-2 border-white/50 rounded-lg"></div><div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">วางสลิปให้อยู่ในกรอบ</div></div>
-                </>
-              )}
-            </div>
-            <canvas ref={canvasRef} className="hidden" />
-            {!cameraError && (
-              <div className="p-6 bg-slate-100 flex items-center justify-center gap-4">
-                <button onClick={handleCloseCamera} className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-300 transition-colors">ยกเลิก</button>
-                <button onClick={handleCapturePhoto} className="flex items-center gap-2 px-8 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors shadow-lg"><Circle className="w-6 h-6 fill-current" /> ถ่ายรูป</button>
+                <p className="font-bold text-xl mb-2">ไม่สามารถเปิดกล้องได้</p>
+                <p className="text-sm text-gray-400 max-w-xs mx-auto">{cameraError}</p>
+                <button 
+                  onClick={handleCloseCamera} 
+                  className="mt-8 px-8 py-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors font-medium border border-white/20"
+                >
+                  ปิดหน้าต่าง
+                </button>
               </div>
+            ) : (
+              <>
+                {/* Video Feed */}
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  className="absolute inset-0 w-full h-full object-cover" 
+                />
+                
+                {/* Visual Guides (Overlay) */}
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+                  {/* Darken outer area */}
+                  <div className="absolute inset-0 bg-black/30"></div>
+                  
+                  {/* Clear Frame */}
+                  <div className="relative w-[75%] aspect-[3/4] max-w-sm border-2 border-white/80 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] overflow-hidden">
+                    {/* Corner Markers */}
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white/90 rounded-tl-xl"></div>
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white/90 rounded-tr-xl"></div>
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white/90 rounded-bl-xl"></div>
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white/90 rounded-br-xl"></div>
+                    
+                    {/* Scanning Line Animation */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-400/80 shadow-[0_0_15px_rgba(74,222,128,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
+                  </div>
+                </div>
+              </>
             )}
           </div>
+
+          {/* Footer Controls (Bottom Bar) */}
+          <div className="bg-black text-white px-6 pb-8 pt-6 flex items-center justify-between pb-safe z-20">
+            {/* Gallery Button (Left) */}
+            <button 
+              onClick={handleOpenGallery}
+              className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <ImageIcon className="w-6 h-6 text-white" />
+            </button>
+
+            {/* Shutter Button (Center) */}
+            <button 
+              onClick={handleCapturePhoto} 
+              disabled={!!cameraError}
+              className="relative group disabled:opacity-50"
+            >
+              <div className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-transform group-active:scale-95">
+                <div className="w-16 h-16 bg-white rounded-full group-hover:bg-gray-200 transition-colors"></div>
+              </div>
+            </button>
+
+            {/* Empty Spacer or Flash Toggle (Right) - keeping it simple for now */}
+            <div className="w-14"></div> 
+          </div>
+
+          {/* Hidden Canvas for capture */}
+          <canvas ref={canvasRef} className="hidden" />
         </div>
       )}
     </>
