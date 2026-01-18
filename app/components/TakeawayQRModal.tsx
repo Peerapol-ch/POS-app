@@ -25,13 +25,7 @@ interface TakeawayQRModalProps {
 
 export default function TakeawayQRModal({ order, onClose }: TakeawayQRModalProps) {
   const [copied, setCopied] = useState(false)
-  
-  // URL ของเว็บไซต์จริง
   const baseUrl = 'https://my-restaurant-app-phi.vercel.app'
-  
-  // ใช้ table_id (ถ้ามี) หรือ fallback ไป 9 ถ้าเป็น takeaway ตาม logic
-  // หรือถ้าคุณใช้ order_id เป็น token ในการเข้าสู่ระบบ ก็ใช้ order.order_id ได้เลย
-  // สมมติในที่นี้เราใช้ table_id=9 สำหรับ takeaway
   const targetId = order.table_id || 9
   const orderUrl = `${baseUrl}/scan_qrcode?t=${targetId}`
 

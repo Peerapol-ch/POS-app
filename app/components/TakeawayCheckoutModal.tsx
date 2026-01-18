@@ -18,7 +18,7 @@ import DrinkSelectionModal from './DrinkSelectionModal'
 import ReceiptModal from './ReceiptModal'
 
 interface TakeawayCheckoutModalProps {
-  dbId: number;      // ✅ เพิ่ม database id
+  dbId: number;     
   orderId: string;
   onClose: () => void;
   onSuccess?:  () => void;
