@@ -24,7 +24,8 @@ import {
   RefreshCw,
   Package,
   CircleDot,
-  Check
+  Check,
+  Play // ✅ เพิ่ม import Play
 } from 'lucide-react'
 
 interface OrderItem {
@@ -424,8 +425,8 @@ export default function KitchenDisplay() {
                     </div>
                     
                     <div className="text-right shrink-0">
-                         <div className="text-xs font-medium text-stone-500 mb-0.5">รอมานาน</div>
-                         {order.items.length > 0 && (
+                          <div className="text-xs font-medium text-stone-500 mb-0.5">รอมานาน</div>
+                          {order.items.length > 0 && (
                              (() => {
                                  const timeInfo = getTimeElapsed(order.items[0].created_at)
                                  return (
@@ -434,7 +435,7 @@ export default function KitchenDisplay() {
                                      </div>
                                  )
                              })()
-                         )}
+                          )}
                     </div>
                   </div>
 
@@ -489,14 +490,14 @@ export default function KitchenDisplay() {
                                      onClick={() => updateItemStatus(item.id, itemStatus === 'pending' ? 'cooking' : 'completed', order.order_id, order.id)}
                                      disabled={isUpdating}
                                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95
-                                        ${itemStatus === 'pending' 
-                                            ? 'bg-stone-100 text-stone-400 hover:bg-sky-500 hover:text-white hover:shadow-sky-200' 
-                                            : 'bg-sky-500 text-white hover:bg-emerald-500 hover:shadow-emerald-200'
-                                        }
+                                      ${itemStatus === 'pending' 
+                                          ? 'bg-stone-100 text-stone-400 hover:bg-sky-500 hover:text-white hover:shadow-sky-200' 
+                                          : 'bg-sky-500 text-white hover:bg-emerald-500 hover:shadow-emerald-200'
+                                      }
                                      `}
                                  >
                                      {isUpdating ? <Loader className="w-5 h-5 animate-spin" /> : 
-                                      itemStatus === 'pending' ? <Flame className="w-5 h-5" /> : <Check className="w-5 h-5" />
+                                      itemStatus === 'pending' ? <Play className="w-5 h-5 fill-current" /> : <Check className="w-5 h-5" />
                                      }
                                  </button>
                              )}
