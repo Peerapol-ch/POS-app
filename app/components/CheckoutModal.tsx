@@ -19,14 +19,10 @@ import {
   Star,
   UserCheck,
   Trash2,
-  Video,
-  Circle,
   Gift,
   Sparkles,
   Calculator,
-  Coins,
-  BadgeDollarSign,
-  ArrowRight,
+  Minus,
 } from 'lucide-react'
 import DrinkSelectionModal from './DrinkSelectionModal'
 import ReceiptModal from './ReceiptModal'
@@ -98,6 +94,9 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   const [receivedAmount, setReceivedAmount] = useState<number>(0)
   const [customAmount, setCustomAmount] = useState<string>('')
   const [showCustomInput, setShowCustomInput] = useState(false)
+
+  // State สำหรับจัดการการแก้ไขรายการ
+  const [updatingItemId, setUpdatingItemId] = useState<number | null>(null)
   
   const [receiptData, setReceiptData] = useState<{
     order_id: string
@@ -158,6 +157,10 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     }
   }
 
+  const calculateTotal = (items:  OrderItem[]) => {
+    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  }
+
   const fetchOrderDetails = useCallback(async () => {
     try {
       setLoading(true)
@@ -214,8 +217,12 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
           const points = calculatePoints(calculatedTotal)
           setEarnedPoints(points)
         }
-
-        setReceivedAmount(calculatedTotal)
+        
+        if (paymentMethod === 'cash' || paymentMethod === null) {
+           if (!showCustomInput) {
+             setReceivedAmount(calculatedTotal)
+           }
+        }
       } else {
         setError('ไม่พบรายการอาหารสำหรับโต๊ะนี้')
       }
@@ -225,7 +232,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     } finally {
       setLoading(false)
     }
-  }, [tableId])
+  }, [tableId, paymentMethod, showCustomInput])
 
   useEffect(() => {
     if (tableId) {
@@ -249,8 +256,49 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
     }
   }, [paymentMethod, order])
 
-  const calculateTotal = (items:  OrderItem[]) => {
-    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const handleUpdateQuantity = async (itemId: number, currentQty: number, change: number) => {
+    const newQty = currentQty + change
+    
+    if (newQty <= 0) {
+      handleDeleteItem(itemId)
+      return
+    }
+
+    setUpdatingItemId(itemId)
+    try {
+      const { error } = await supabase
+        .from('order_items')
+        .update({ quantity: newQty })
+        .eq('id', itemId)
+
+      if (error) throw error
+      await fetchOrderDetails()
+    } catch (err: any) {
+      console.error('Error updating quantity:', err)
+      alert('ไม่สามารถแก้ไขจำนวนได้: ' + err.message)
+    } finally {
+      setUpdatingItemId(null)
+    }
+  }
+
+  const handleDeleteItem = async (itemId: number) => {
+    if (!confirm('คุณต้องการลบรายการสินค้านี้ใช่หรือไม่?')) return
+
+    setUpdatingItemId(itemId)
+    try {
+      const { error } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('id', itemId)
+
+      if (error) throw error
+      await fetchOrderDetails()
+    } catch (err: any) {
+      console.error('Error deleting item:', err)
+      alert('ไม่สามารถลบรายการได้: ' + err.message)
+    } finally {
+      setUpdatingItemId(null)
+    }
   }
 
   const handleSlipSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,24 +318,12 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   }
 
   const handleOpenCamera = async () => {
-    // NOTE: ตัดส่วนเช็ค isMobile ออก เพื่อบังคับใช้ Modal ของเราแทน Native Camera
-    // ถ้าต้องการใช้ Native Camera ให้ Uncomment ด้านล่าง
-    /*
-    if (isMobile()) {
-      if (cameraInputRef.current) {
-        cameraInputRef.current.click()
-      }
-      return
-    }
-    */
-
     setCameraError(null)
     setShowCameraModal(true)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          // ไม่ fix width/height เพื่อให้ browser ปรับตาม ratio ของอุปกรณ์
         }
       })
       setCameraStream(stream)
@@ -500,21 +536,15 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
   return (
     <>
-      {/* Container: h-[100dvh] for mobile full height */}
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
         
-        {/* Main Card */}
         <div className="bg-white w-full max-w-5xl flex flex-col md:flex-row 
           h-[100dvh] md:h-[90vh] md:rounded-3xl shadow-2xl overflow-hidden relative">
           
-          {/* ==================== LEFT COLUMN (Order Items) ==================== 
-              Mobile: ปรับความสูงเป็น h-[45vh] เพื่อให้เห็นรายการอาหารมากขึ้น
-              Desktop: h-full เหมือนเดิม
-          */}
+          {/* ==================== LEFT COLUMN (Order Items) ==================== */}
           <div className="w-full md:flex-1 flex flex-col bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 
             h-[45vh] md:h-full shrink-0">
             
-            {/* Header Area */}
             <div className="p-3 md:p-6 bg-white border-b border-slate-100 flex justify-between items-center shadow-sm z-10 shrink-0">
               <div>
                 <h2 className="text-base md:text-2xl font-black text-slate-800 flex items-center gap-2">
@@ -536,14 +566,12 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                     <Coffee className="w-3 h-3 md:w-4 md:h-4 sm:hidden" />
                   </button>
                 )}
-                {/* Mobile Close Button */}
                 <button onClick={onClose} className="md:hidden p-1.5 bg-slate-100 rounded-full hover:bg-red-50 hover:text-red-500">
-                   <X className="w-4 h-4" />
+                    <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto p-2 md:p-6 scroll-smooth bg-slate-50">
               
               {/* Member Info */}
@@ -609,32 +637,77 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                     <table className="w-full text-left border-collapse min-w-[300px] md:min-w-[350px]">
                       <thead>
                         <tr className="bg-slate-100 text-slate-500 text-[10px] md:text-sm uppercase tracking-wider border-b border-slate-200">
-                          <th className="p-2 md:p-4 font-semibold">รายการ</th>
-                          <th className="p-2 md:p-4 font-semibold text-center w-12 md:w-24">จำนวน</th>
-                          <th className="p-2 md:p-4 font-semibold text-right w-16 md:w-32 hidden sm:table-cell">ราคา</th>
-                          <th className="p-2 md:p-4 font-semibold text-right w-20 md:w-32 bg-slate-200/50">รวม</th>
+                          {/* ลด Padding ให้แคบลง */}
+                          <th className="py-2 px-1 md:p-2 font-semibold">รายการ</th>
+                          <th className="py-2 px-1 md:p-2 font-semibold text-center w-20 md:w-24">จำนวน</th>
+                          <th className="py-2 px-1 md:p-2 font-semibold text-right w-16 hidden sm:table-cell">ราคา</th>
+                          <th className="py-2 px-1 md:p-2 font-semibold text-right w-20 md:w-28 bg-slate-200/50">รวม</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {order.items.map((item, index) => (
-                          <tr key={item.id || index} className="hover:bg-lime-50/50 transition-colors text-xs md:text-base">
-                            <td className="p-2 md:p-4 font-medium text-slate-700">
-                              <div className="line-clamp-2">
-                                {item.menu_items?.name || 'ไม่ระบุชื่อ'}
-                              </div>
-                              <div className="sm:hidden text-[10px] text-slate-400 mt-0.5">
-                                {item.price.toLocaleString()} / หน่วย
+                          <tr key={item.id || index} className="hover:bg-lime-50/50 transition-colors text-xs md:text-base group">
+                            {/* 1. ชื่อรายการ (บังคับบรรทัดเดียว) */}
+                            <td className="py-3 px-1 md:p-2 font-medium text-slate-700 align-middle">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {/* ปุ่มลบ */}
+                                <button 
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  disabled={updatingItemId === item.id}
+                                  className="p-1.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors shrink-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                </button>
+                                
+                                {/* Container ชื่อ: ใช้ min-w-0 เพื่อให้ flex-child ยอมหด และ truncate ทำงาน */}
+                                <div className="min-w-0 flex-1">
+                                  {/* truncate + whitespace-nowrap = บังคับ 1 บรรทัด + ... ถ้าล้น */}
+                                  <div className="truncate whitespace-nowrap font-bold text-slate-700 text-sm md:text-base">
+                                    {item.menu_items?.name || 'ไม่ระบุชื่อ'}
+                                  </div>
+                                  <div className="sm:hidden text-[10px] text-slate-400 mt-0.5 truncate">
+                                    {item.price.toLocaleString()} / หน่วย
+                                  </div>
+                                </div>
                               </div>
                             </td>
-                            <td className="p-2 md:p-4 text-center">
-                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[10px] md:text-sm font-bold whitespace-nowrap">
-                                x {item.quantity}
-                              </span>
+
+                            {/* 2. จำนวน (Compact) */}
+                            <td className="py-3 px-1 md:p-2 text-center align-middle">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => handleUpdateQuantity(item.id, item.quantity, -1)}
+                                  disabled={updatingItemId === item.id}
+                                  className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-50 transition-colors"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+
+                                <div className="w-5 md:w-7 text-center font-bold text-slate-800 text-xs md:text-sm">
+                                  {updatingItemId === item.id ? (
+                                    <Loader className="w-3 h-3 animate-spin mx-auto text-lime-500" />
+                                  ) : (
+                                    item.quantity
+                                  )}
+                                </div>
+
+                                <button
+                                  onClick={() => handleUpdateQuantity(item.id, item.quantity, 1)}
+                                  disabled={updatingItemId === item.id}
+                                  className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-slate-100 hover:bg-lime-100 text-slate-600 hover:text-lime-600 disabled:opacity-50 transition-colors"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
                             </td>
-                            <td className="p-2 md:p-4 text-right text-slate-500 font-mono hidden sm:table-cell">
+
+                            {/* 3. ราคาต่อหน่วย */}
+                            <td className="py-3 px-1 md:p-2 text-right text-slate-500 font-mono hidden sm:table-cell align-middle">
                               {item.price.toLocaleString()}
                             </td>
-                            <td className="p-2 md:p-4 text-right font-bold text-slate-800 font-mono bg-slate-50/50">
+
+                            {/* 4. ราคารวม */}
+                            <td className="py-3 px-1 md:p-2 text-right font-bold text-slate-800 font-mono bg-slate-50/50 align-middle">
                               {(item.price * item.quantity).toLocaleString()}
                             </td>
                           </tr>
@@ -642,12 +715,12 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                       </tbody>
                       <tfoot className="bg-slate-50 border-t border-slate-200">
                         <tr>
-                          <td colSpan={2} className="p-2 md:p-4 text-right font-bold text-slate-600 text-[10px] md:text-sm">
+                          <td colSpan={2} className="py-2 px-1 md:p-4 text-right font-bold text-slate-600 text-[10px] md:text-sm">
                              <span className="sm:hidden">รวม</span>
                              <span className="hidden sm:inline">รวมจำนวนรายการ</span>
                           </td>
-                          <td className="p-2 md:p-4 text-right font-bold text-slate-800 text-xs md:text-sm hidden sm:table-cell"></td>
-                          <td className="p-2 md:p-4 text-right font-bold text-slate-800 text-xs md:text-base">
+                          <td className="py-2 px-1 md:p-4 text-right font-bold text-slate-800 text-xs md:text-sm hidden sm:table-cell"></td>
+                          <td className="py-2 px-1 md:p-4 text-right font-bold text-slate-800 text-xs md:text-base">
                             {order.items.reduce((acc, item) => acc + item.quantity, 0)}
                           </td>
                         </tr>
@@ -659,12 +732,10 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
             </div>
           </div>
 
-          {/* ==================== RIGHT COLUMN (Payment & Actions) ==================== 
-              Mobile: flex-1 (กินพื้นที่ที่เหลือทั้งหมด) + min-h-0 (สำคัญมากเพื่อให้ลูก scroll ได้)
-          */}
-          <div className="w-full md:w-[420px] bg-white flex flex-col flex-1 min-h-0 md:h-full shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-l-xl z-20 md:border-l border-slate-200 relative">
+          {/* ==================== RIGHT COLUMN (Payment & Actions) ==================== */}
+          {/* ปรับลดขนาด Width ตรงนี้จาก 420px -> 340px */}
+          <div className="w-full md:w-[340px] bg-white flex flex-col flex-1 min-h-0 md:h-full shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-l-xl z-20 md:border-l border-slate-200 relative">
             
-            {/* SCROLLABLE AREA */}
             <div className="flex-1 overflow-y-auto p-3 md:p-6 flex flex-col gap-3 md:gap-5 bg-white pb-20 md:pb-6">
               
               <div className="hidden md:flex justify-end mb-2">
@@ -718,23 +789,23 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                 </div>
                 {/* ปุ่มเลือก Cash/PromptPay */}
                 <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
-                   <button 
+                    <button 
                       onClick={() => { setPaymentMethod('cash'); handleRemoveSlip(); }}
                       className={`relative p-2 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center gap-1 md:gap-4 transition-all ${paymentMethod === 'cash' ? 'border-green-500 bg-green-50 shadow-md' : 'border-slate-100 bg-white'}`}
-                   >
+                    >
                       <Banknote className={`w-5 h-5 md:w-6 md:h-6 ${paymentMethod === 'cash' ? 'text-green-600' : 'text-slate-400'}`} />
                       <span className={`text-xs md:text-base font-bold ${paymentMethod === 'cash' ? 'text-green-800' : 'text-slate-600'}`}>เงินสด</span>
                       {paymentMethod === 'cash' && <CheckCircle2 className="absolute top-1 right-1 text-green-500 w-4 h-4" />}
-                   </button>
+                    </button>
 
-                   <button 
+                    <button 
                       onClick={() => setPaymentMethod('promptpay')}
                       className={`relative p-2 md:p-4 rounded-xl border-2 flex flex-col md:flex-row items-center gap-1 md:gap-4 transition-all ${paymentMethod === 'promptpay' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-100 bg-white'}`}
-                   >
+                    >
                       <QrCode className={`w-5 h-5 md:w-6 md:h-6 ${paymentMethod === 'promptpay' ? 'text-blue-600' : 'text-slate-400'}`} />
                       <span className={`text-xs md:text-base font-bold ${paymentMethod === 'promptpay' ? 'text-blue-800' : 'text-slate-600'}`}>PromptPay</span>
                       {paymentMethod === 'promptpay' && <CheckCircle2 className="absolute top-1 right-1 text-blue-500 w-4 h-4" />}
-                   </button>
+                    </button>
                 </div>
               </div>
 
@@ -784,7 +855,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                   <div className="bg-slate-50 rounded-xl p-2 md:p-4 border border-slate-200 flex justify-between items-center">
                      <span className="text-xs text-slate-500">เงินทอน</span>
                      <span className={`font-black text-lg md:text-2xl ${changeAmount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        ฿{changeAmount.toLocaleString()}
+                       ฿{changeAmount.toLocaleString()}
                      </span>
                   </div>
                   {receivedAmount < totalAmount && receivedAmount > 0 && (
@@ -825,10 +896,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               )}
             </div>
 
-            {/* ==================== FOOTER BUTTON (FIXED BOTTOM) ==================== 
-                ใช้ shrink-0 เพื่อไม่ให้โดนบีบ และ z-30 เพื่อให้ลอยอยู่เหนือ content
-                เพิ่ม pb-safe เพื่อรองรับ iPhone
-            */}
+            {/* ==================== FOOTER BUTTON (FIXED BOTTOM) ==================== */}
             <div className="p-3 md:p-6 bg-white border-t border-slate-100 shrink-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] pb-safe">
               <button 
                 onClick={handlePayment}
@@ -904,7 +972,6 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               </div>
             ) : (
               <>
-                {/* Video Feed */}
                 <video 
                   ref={videoRef} 
                   autoPlay 
@@ -913,20 +980,15 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
                   className="absolute inset-0 w-full h-full object-cover" 
                 />
                 
-                {/* Visual Guides (Overlay) */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
-                  {/* Darken outer area */}
                   <div className="absolute inset-0 bg-black/30"></div>
                   
-                  {/* Clear Frame */}
                   <div className="relative w-[75%] aspect-[3/4] max-w-sm border-2 border-white/80 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] overflow-hidden">
-                    {/* Corner Markers */}
                     <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white/90 rounded-tl-xl"></div>
                     <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white/90 rounded-tr-xl"></div>
                     <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white/90 rounded-bl-xl"></div>
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white/90 rounded-br-xl"></div>
                     
-                    {/* Scanning Line Animation */}
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-400/80 shadow-[0_0_15px_rgba(74,222,128,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
                   </div>
                 </div>
@@ -936,7 +998,6 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
 
           {/* Footer Controls (Bottom Bar) */}
           <div className="bg-black text-white px-6 pb-8 pt-6 flex items-center justify-between pb-safe z-20">
-            {/* Gallery Button (Left) */}
             <button 
               onClick={handleOpenGallery}
               className="p-4 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
@@ -944,7 +1005,6 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               <ImageIcon className="w-6 h-6 text-white" />
             </button>
 
-            {/* Shutter Button (Center) */}
             <button 
               onClick={handleCapturePhoto} 
               disabled={!!cameraError}
@@ -955,11 +1015,9 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               </div>
             </button>
 
-            {/* Empty Spacer or Flash Toggle (Right) - keeping it simple for now */}
             <div className="w-14"></div> 
           </div>
 
-          {/* Hidden Canvas for capture */}
           <canvas ref={canvasRef} className="hidden" />
         </div>
       )}
