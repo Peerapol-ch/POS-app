@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/app/context/AuthContext'
+import { useAuth } from '@/app/context/AuthContext' 
 import {
   UtensilsCrossed,
   User,
@@ -17,7 +17,7 @@ import {
 export default function LoginPage() {
   const router = useRouter()
   
-  // Mock Auth Context
+  // เรียกใช้ AuthContext
   const authContext = useAuth ? useAuth() : { user: null, login: async () => ({ success: true, error: '' }), loading: false }
   const { user, login, loading: authLoading } = authContext
 
@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Redirect ถ้า Login อยู่แล้ว
   useEffect(() => {
     if (!authLoading && user) {
       router.push('/')
@@ -47,15 +48,18 @@ export default function LoginPage() {
     }
 
     setLoading(true)
-    // await new Promise(r => setTimeout(r, 1000)) 
     
+    // เรียกฟังก์ชัน Login จาก Context
+    // ระบบจะส่ง userid/pass ไปที่ API เพื่อตรวจสอบเบื้องหลัง
     const result = await login(userid.trim(), password)
+    
     setLoading(false)
 
     if (result.success) {
       router.push('/')
     } else {
-      setError((result as any).error || 'เข้าสู่ระบบไม่สำเร็จ')
+      // แสดง Error ที่ได้จาก API หรือข้อความ Default
+      setError((result as any).error || 'รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง')
     }
   }
 
@@ -68,17 +72,15 @@ export default function LoginPage() {
   }
 
   return (
-    // เปลี่ยน Background เป็นสี Stone-50 (ขาวอมเทาอุ่นๆ)
     <main className="min-h-screen flex items-center justify-center bg-stone-50 p-4 font-sans text-stone-800">
       
-      {/* Background Pattern: เปลี่ยนจุดเป็นสีน้ำตาลจางๆ */}
+      {/* Background Pattern */}
       <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#78350f 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-stone-100 overflow-hidden relative z-10">
         
         {/* Header */}
         <div className="pt-10 pb-6 px-8 text-center">
-          {/* Logo Background: สีส้ม/น้ำตาลอ่อนจางๆ */}
           <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-amber-700">
             <UtensilsCrossed className="w-8 h-8" />
           </div>
@@ -108,7 +110,6 @@ export default function LoginPage() {
                 value={userid}
                 onChange={(e) => setUserid(e.target.value)}
                 placeholder="กรอกรหัสผู้ใช้ของคุณ"
-                // เปลี่ยน Focus border เป็นสี Amber (น้ำตาลทอง)
                 className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all"
                 disabled={loading}
               />
@@ -140,7 +141,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Submit Button: เปลี่ยนเป็นสี Amber-600 (น้ำตาลทองเข้ม) */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}

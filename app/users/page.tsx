@@ -1,9 +1,6 @@
 'use client'
-
 import { useEffect, useState } from 'react'
-import { supabase } from '@/utils/supabaseClient'
 import QuickMenu from '@/app/components/QuickMenu'
-import bcrypt from 'bcryptjs' // ✅ เพิ่ม import bcryptjs
 import {
   Users,
   Plus,
@@ -25,6 +22,7 @@ import {
   Clock
 } from 'lucide-react'
 
+// ... (Interface และ Config เหมือนเดิม) ...
 interface UserProfile {
   id: number
   userid: string | null
@@ -108,17 +106,16 @@ export default function UsersPage() {
     loadUsers()
   }, [])
 
+  // ✅ เปลี่ยนมาดึงข้อมูลผ่าน API
   const loadUsers = async () => {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: fetchError } = await supabase
-        .from('user')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (fetchError) throw fetchError
-      setUsers(data || [])
+      const res = await fetch('/api/users')
+      const json = await res.json()
+      
+      if (!json.success) throw new Error(json.error)
+      setUsers(json.data || [])
     } catch (err: any) {
       console.error('Error loading users:', err)
       setError(err?.message || 'ไม่สามารถโหลดข้อมูลได้')
@@ -154,31 +151,19 @@ export default function UsersPage() {
   }
 
   const validateForm = (isEdit: boolean = false): string | null => {
-    if (!formData.userid.trim()) {
-      return 'กรุณากรอกรหัสผู้ใช้'
-    }
-    if (formData.userid.length < 3) {
-      return 'รหัสผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร'
-    }
-    if (!formData.Name.trim()) {
-      return 'กรุณากรอกชื่อ'
-    }
+    if (!formData.userid.trim()) return 'กรุณากรอกรหัสผู้ใช้'
+    if (formData.userid.length < 3) return 'รหัสผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร'
+    if (!formData.Name.trim()) return 'กรุณากรอกชื่อ'
 
     if (!isEdit || formData.password) {
-      if (!formData.password && !isEdit) {
-        return 'กรุณากรอกรหัสผ่าน'
-      }
-      if (formData.password && formData.password.length < 4) {
-        return 'รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร'
-      }
-      if (formData.password !== formData.confirmPassword) {
-        return 'รหัสผ่านไม่ตรงกัน'
-      }
+      if (!formData.password && !isEdit) return 'กรุณากรอกรหัสผ่าน'
+      if (formData.password && formData.password.length < 4) return 'รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร'
+      if (formData.password !== formData.confirmPassword) return 'รหัสผ่านไม่ตรงกัน'
     }
-
     return null
   }
 
+  // ✅ ใช้ API POST แทนการเรียก Supabase โดยตรง
   const handleSaveAdd = async () => {
     const validationError = validateForm(false)
     if (validationError) {
@@ -188,43 +173,31 @@ export default function UsersPage() {
 
     setSaving(true)
     try {
-      // ตรวจสอบว่า userid ซ้ำหรือไม่
-      const { data: existing } = await supabase
-        .from('user')
-        .select('id')
-        .eq('userid', formData.userid.trim())
-        .single()
-
-      if (existing) {
-        alert('รหัสผู้ใช้นี้มีอยู่แล้ว')
-        setSaving(false)
-        return
-      }
-
-      // ✅ 1. สร้าง Hash ของรหัสผ่าน
-      const salt = bcrypt.genSaltSync(10)
-      const hashedPassword = bcrypt.hashSync(formData.password, salt)
-
-      const { error } = await supabase.from('user').insert({
-        userid: formData.userid.trim(),
-        password: hashedPassword, // ✅ ส่งรหัสที่ Hash แล้ว
-        role: formData.role,
-        Name: formData.Name.trim(),
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userid: formData.userid.trim(),
+          password: formData.password,
+          role: formData.role,
+          Name: formData.Name.trim(),
+        }),
       })
 
-      if (error) throw error
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error)
 
       await loadUsers()
       setShowAddModal(false)
       setFormData(initialFormData)
     } catch (err: any) {
-      console.error('Error adding user:', err)
       alert('เกิดข้อผิดพลาด: ' + err?.message)
     } finally {
       setSaving(false)
     }
   }
 
+  // ✅ ใช้ API PUT แทน
   const handleSaveEdit = async () => {
     const validationError = validateForm(true)
     if (validationError) {
@@ -236,74 +209,58 @@ export default function UsersPage() {
 
     setSaving(true)
     try {
-      // ตรวจสอบว่า userid ซ้ำหรือไม่ (ยกเว้นตัวเอง)
-      const { data: existing } = await supabase
-        .from('user')
-        .select('id')
-        .eq('userid', formData.userid.trim())
-        .neq('id', selectedUser.id)
-        .single()
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedUser.id,
+          userid: formData.userid.trim(),
+          password: formData.password, // ส่งไป Server ถ้าว่าง Server จะไม่แก้
+          role: formData.role,
+          Name: formData.Name.trim(),
+        }),
+      })
 
-      if (existing) {
-        alert('รหัสผู้ใช้นี้มีอยู่แล้ว')
-        setSaving(false)
-        return
-      }
-
-      const updateData: any = {
-        userid: formData.userid.trim(),
-        role: formData.role,
-        Name: formData.Name.trim(),
-      }
-
-      // ✅ 2. อัพเดทรหัสผ่านเฉพาะเมื่อมีการกรอก และทำการ Hash
-      if (formData.password) {
-        const salt = bcrypt.genSaltSync(10)
-        updateData.password = bcrypt.hashSync(formData.password, salt)
-      }
-
-      const { error } = await supabase
-        .from('user')
-        .update(updateData)
-        .eq('id', selectedUser.id)
-
-      if (error) throw error
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error)
 
       await loadUsers()
       setShowEditModal(false)
       setSelectedUser(null)
       setFormData(initialFormData)
     } catch (err: any) {
-      console.error('Error updating user:', err)
       alert('เกิดข้อผิดพลาด: ' + err?.message)
     } finally {
       setSaving(false)
     }
   }
 
+  // ✅ ใช้ API DELETE แทน
   const handleConfirmDelete = async () => {
     if (!selectedUser) return
 
     setSaving(true)
     try {
-      const { error } = await supabase
-        .from('user')
-        .delete()
-        .eq('id', selectedUser.id)
+      const res = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedUser.id }),
+      })
 
-      if (error) throw error
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error)
 
       await loadUsers()
       setShowDeleteModal(false)
       setSelectedUser(null)
     } catch (err: any) {
-      console.error('Error deleting user:', err)
       alert('เกิดข้อผิดพลาด: ' + err?.message)
     } finally {
       setSaving(false)
     }
   }
 
+  // ... (ฟังก์ชัน formatDate และ ส่วน Render UI เหมือนเดิมทุกประการ) ...
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-'
     return new Date(dateString).toLocaleDateString('th-TH', {
@@ -324,7 +281,6 @@ export default function UsersPage() {
     })
   }
 
-  // Filter users
   const filteredUsers = users.filter((user) => {
     const userid = user.userid || ''
     const name = user.Name || ''
@@ -336,7 +292,6 @@ export default function UsersPage() {
     return matchesSearch && matchesRole
   })
 
-  // Stats
   const totalUsers = users.length
   const roleStats = {
     owner: users.filter(u => u.role === 'owner').length,
@@ -396,7 +351,7 @@ export default function UsersPage() {
             </button>
           </div>
 
-          {/* Role Stats - เหลือ 3 roles */}
+          {/* Role Stats */}
           <div className="grid grid-cols-3 gap-2 mb-4">
             {Object.entries(roleConfig).map(([role, config]) => {
               const count = roleStats[role as keyof typeof roleStats]
@@ -622,7 +577,7 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* Role - เหลือ 3 roles */}
+              {/* Role */}
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">สิทธิ์การใช้งาน *</label>
                 <div className="grid grid-cols-3 gap-2">

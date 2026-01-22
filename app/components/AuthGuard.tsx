@@ -3,11 +3,11 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
-import { ShieldAlert, Loader2 } from 'lucide-react'
+import { ShieldAlert, Loader2, Home } from 'lucide-react'
 import Link from 'next/link'
 
 interface AuthGuardProps {
-  children: React. ReactNode
+  children: React.ReactNode // ลบเว้นวรรค
   requiredPage?: string
 }
 
@@ -16,17 +16,18 @@ export default function AuthGuard({ children, requiredPage }: AuthGuardProps) {
   const router = useRouter()
 
   useEffect(() => {
-    if (! loading && ! user) {
-      router. push('/login')
+    if (!loading && !user) {
+      router.push('/login') // ลบเว้นวรรค
     }
   }, [user, loading, router])
 
+  // 1. หน้า Loading: เปลี่ยนเป็นธีมสีครีม/ส้ม
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <main className="min-h-screen flex items-center justify-center bg-stone-50">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white/80">กำลังตรวจสอบสิทธิ์... </p>
+          <Loader2 className="w-10 h-10 text-amber-600 animate-spin mx-auto mb-4" />
+          <p className="text-stone-500 text-sm font-medium">กำลังตรวจสอบสิทธิ์...</p>
         </div>
       </main>
     )
@@ -36,22 +37,31 @@ export default function AuthGuard({ children, requiredPage }: AuthGuardProps) {
     return null
   }
 
-  // ตรวจสอบสิทธิ์เข้าถึงหน้า
+  // 2. หน้าไม่มีสิทธิ์เข้าถึง (Access Denied): เปลี่ยนเป็นธีมขาว/แดงอ่อนๆ ให้ดูสะอาดตา
   if (requiredPage && !canAccess(requiredPage)) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-900 via-red-800 to-orange-900 p-4">
-        <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border border-white/20">
-          <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <ShieldAlert className="w-10 h-10 text-white" />
+      <main className="min-h-screen flex items-center justify-center bg-stone-50 p-4 font-sans">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-stone-100 overflow-hidden text-center p-8">
+          
+          {/* Icon */}
+          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <ShieldAlert className="w-8 h-8 text-red-500" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
-          <p className="text-red-200 mb-6">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</p>
+
+          <h2 className="text-xl font-bold text-stone-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
+          <p className="text-stone-500 mb-8 text-sm">
+            บัญชีของคุณไม่มีสิทธิ์ใช้งานหน้านี้ <br/>
+            โปรดติดต่อผู้ดูแลระบบหากคิดว่าเกิดข้อผิดพลาด
+          </p>
+
           <Link
             href="/"
-            className="inline-block px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover: to-teal-600 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold transition-all shadow-sm hover:shadow-md active:scale-[0.98] w-full"
           >
-            กลับหน้าหลัก
+            <Home className="w-4 h-4" />
+            <span>กลับหน้าหลัก</span>
           </Link>
+
         </div>
       </main>
     )
