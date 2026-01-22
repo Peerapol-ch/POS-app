@@ -23,9 +23,11 @@ import {
   Sparkles,
   Calculator,
   Minus,
+  UtensilsCrossed 
 } from 'lucide-react'
 import DrinkSelectionModal from './DrinkSelectionModal'
 import ReceiptModal from './ReceiptModal'
+import AddMenuItemModal from './AddMenuItemModal' 
 
 interface CheckoutModalProps {
   tableId: number;
@@ -52,7 +54,7 @@ interface CustomerInfo {
 
 interface OrderData {
   id: number
-  order_id: string
+  order_id: string // UUID
   total_amount: number
   customer_count: number
   created_at: string
@@ -71,6 +73,7 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
   const [isProcessing, setIsProcessing] = useState(false)
   
   const [showDrinkModal, setShowDrinkModal] = useState(false)
+  const [showAddMenuModal, setShowAddMenuModal] = useState(false) 
   const [showReceipt, setShowReceipt] = useState(false)
   
   // สลิป
@@ -557,14 +560,26 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
               
               <div className="flex items-center gap-2">
                 {order && (
-                  <button 
-                    onClick={() => setShowDrinkModal(true)}
-                    className="flex items-center gap-1 md:gap-2 bg-blue-50 text-blue-600 px-2 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm text-[10px] md:text-base"
-                  >
-                    <Plus className="w-3 h-3 md:w-4 md:h-4" />
-                    <span className="hidden sm:inline">เพิ่มน้ำ</span>
-                    <Coffee className="w-3 h-3 md:w-4 md:h-4 sm:hidden" />
-                  </button>
+                  <>
+                    {/* ปุ่มเพิ่มรายการอาหาร (ใหม่) */}
+                    <button 
+                      onClick={() => setShowAddMenuModal(true)}
+                      className="flex items-center gap-1 md:gap-2 bg-orange-50 text-orange-600 px-2 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl font-bold hover:bg-orange-100 transition-colors border border-orange-100 shadow-sm text-[10px] md:text-base"
+                    >
+                      <Plus className="w-3 h-3 md:w-4 md:h-4" />
+                      <span className="hidden sm:inline">เพิ่มอาหาร</span>
+                      <UtensilsCrossed className="w-3 h-3 md:w-4 md:h-4 sm:hidden" />
+                    </button>
+
+                    <button 
+                      onClick={() => setShowDrinkModal(true)}
+                      className="flex items-center gap-1 md:gap-2 bg-blue-50 text-blue-600 px-2 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm text-[10px] md:text-base"
+                    >
+                      <Plus className="w-3 h-3 md:w-4 md:h-4" />
+                      <span className="hidden sm:inline">เพิ่มน้ำ</span>
+                      <Coffee className="w-3 h-3 md:w-4 md:h-4 sm:hidden" />
+                    </button>
+                  </>
                 )}
                 <button onClick={onClose} className="md:hidden p-1.5 bg-slate-100 rounded-full hover:bg-red-50 hover:text-red-500">
                     <X className="w-4 h-4" />
@@ -927,10 +942,22 @@ export default function CheckoutModal({ tableId, tableName, onClose, onSuccess }
           </div>
         </div>
 
+        {/* Modal: เลือกน้ำ */}
         {showDrinkModal && order && (
           <DrinkSelectionModal 
             orderId={order.order_id} 
             onClose={() => setShowDrinkModal(false)}
+            onSuccess={() => { fetchOrderDetails() }}
+          />
+        )}
+
+        {/* Modal: เพิ่มรายการอาหาร (ใหม่) */}
+        {showAddMenuModal && order && (
+          <AddMenuItemModal 
+            // ----- แก้ไขจุดสำคัญตรงนี้ -----
+            // เปลี่ยนจาก order.id (int) เป็น order.order_id (string UUID) ตามที่คุณขอ
+            orderId={order.order_id} 
+            onClose={() => setShowAddMenuModal(false)}
             onSuccess={() => { fetchOrderDetails() }}
           />
         )}
