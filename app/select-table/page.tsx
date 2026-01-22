@@ -19,6 +19,8 @@ import {
   ChevronUp,
   Clock,
   Package,
+  Flame,
+  CheckCircle2,
   Timer,
   ChefHat,
   Wallet
@@ -331,9 +333,9 @@ export default function SelectTable() {
     return orderId.slice(-4)
   }
   
-  if (loading) return <main className="h-screen flex items-center justify-center p-6"><Loader className="w-10 h-10 animate-spin text-emerald-600"/></main>
-  if (error) return <main className="h-screen flex items-center justify-center p-6">Error: {JSON.stringify(error)}</main>
-  if (data.length === 0) return <main className="h-screen flex items-center justify-center p-6">No Data</main>
+  if (loading) return <main className="min-h-screen flex items-center justify-center p-6"><Loader className="w-10 h-10 animate-spin text-emerald-600"/></main>
+  if (error) return <main className="min-h-screen flex items-center justify-center p-6">Error: {JSON.stringify(error)}</main>
+  if (data.length === 0) return <main className="min-h-screen flex items-center justify-center p-6">No Data</main>
 
   const regularTables = data.filter((t) => {
     const name = String(t.table_number).toLowerCase()
@@ -351,11 +353,14 @@ export default function SelectTable() {
   const selectedTableData = data.find((t) => String(t.id) === selectedTable)
   const getTable = (num: number) => regularTables.find((t) => getTableNumber(t.table_number) === num)
 
+  const displayOrders = showAllOrders ? takeawayOrders :  takeawayOrders.slice(0, 3)
+  const hasMoreOrders = takeawayOrders.length > 3
+
   const pendingCount = takeawayOrders.filter(o => o.status.toLowerCase() === 'pending').length
   const cookingCount = takeawayOrders.filter(o => o.status.toLowerCase() === 'cooking').length
   const servedCount = takeawayOrders.filter(o => o.status.toLowerCase() === 'served').length
   
-  // ✅ TableCard - Responsive Text Sizes
+  // ✅ TableCard - ปรับปรุงใหม่ให้รองรับ Mobile (Compact Mode)
   const TableCard = ({ table, className = '' }: { table: Table; className?:  string }) => {
     const num = getTableNumber(table.table_number)
     const statusInfo = getStatusInfo(table.current_status)
@@ -373,42 +378,42 @@ export default function SelectTable() {
           onMouseEnter={() => setHoveredTable(String(table.id))}
           onMouseLeave={() => setHoveredTable(null)}
           disabled={!isClickable}
-          className={`w-full h-full relative rounded-xl transition-all duration-200 flex flex-col items-center justify-center text-center p-1
+          className={`w-full h-full relative rounded-xl md:rounded-2xl border-2 transition-all duration-200 flex flex-col items-center justify-center text-center p-1 md:p-3
             ${isSelected 
-              ? 'shadow-lg ring-2 ring-emerald-400/50 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-400' 
+              ? 'shadow-xl ring-2 md:ring-4 ring-emerald-400/50 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-400' 
               : isVacant 
-              ? 'bg-white hover:shadow-md border-2 border-slate-200 hover:border-emerald-400 active:scale-95' 
+              ? 'bg-white hover:shadow-lg border-slate-200 hover:border-emerald-400' 
               :  isCheckout 
-              ? 'bg-lime-50 border-2 border-lime-400 hover:shadow-md hover:bg-lime-100 cursor-pointer animate-pulse' 
-              : 'bg-slate-100 opacity-60 cursor-not-allowed border-2 border-slate-200'}
+              ? 'bg-lime-50 border-lime-400 hover:shadow-lg hover:bg-lime-100 cursor-pointer' 
+              : 'bg-slate-100 opacity-60 cursor-not-allowed border-slate-200'}
           `}
         >
-          {/* Icon */}
+          {/* Icon - Smaller on Mobile */}
           <div className={`mb-0.5 md:mb-1 transition-transform ${isHovered && isClickable && !isSelected ? 'scale-110' : ''}`}>
             {isCheckout ?  (
-              <Banknote className={`w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 ${isSelected ? 'text-white' : 'text-lime-600'}`} />
+              <Banknote className={`w-4 h-4 md:w-8 md:h-8 ${isSelected ? 'text-white' : 'text-lime-600'}`} />
             ) : (
-              <UtensilsCrossed className={`w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 ${isSelected ?  'text-white' : 'text-slate-400'}`} />
+              <UtensilsCrossed className={`w-4 h-4 md:w-8 md:h-8 ${isSelected ?  'text-white' : 'text-slate-400'}`} />
             )}
           </div>
 
           {/* Table Number */}
-          <div className={`font-black text-base md:text-lg lg:text-xl ${isSelected ? 'text-white' : isCheckout ? 'text-lime-800' : 'text-slate-800'}`}>{num}</div>
+          <div className={`font-black text-sm sm:text-base md:text-2xl ${isSelected ? 'text-white' : isCheckout ? 'text-lime-800' : 'text-slate-800'}`}>{num}</div>
           
           {/* Seat Capacity */}
-          <div className={`text-[9px] md:text-[10px] mt-0.5 ${isSelected ? 'text-white/80' : isCheckout ? 'text-lime-700' : 'text-slate-500'}`}>{table.seat_capacity || 0} ที่</div>
+          <div className={`text-[9px] md:text-xs mt-0.5 ${isSelected ? 'text-white/80' : isCheckout ? 'text-lime-700' : 'text-slate-500'}`}>{table.seat_capacity || 0} ที่</div>
           
-          {/* Status Badge */}
-          <div className="absolute bottom-1 w-full px-1">
-            <span className={`block w-full ${statusInfo.badgeBg} ${statusInfo.badgeColor} px-0.5 py-0.5 rounded text-[7px] md:text-[8px] font-bold truncate`}>
+          {/* Status Badge - Absolute Position Bottom */}
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-2 md:bottom-2 w-full md:w-auto px-1">
+            <span className={`block w-full md:w-auto ${statusInfo.badgeBg} ${statusInfo.badgeColor} px-1 py-0.5 rounded md:rounded-full text-[8px] md:text-[10px] font-bold truncate`}>
                 {statusInfo.label}
             </span>
           </div>
         </button>
         {isSelected && (
-          <div className="absolute -top-1 -right-1 z-10">
-            <div className="bg-emerald-500 rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center shadow-lg ring-2 ring-white">
-              <Check className="w-2 md:w-2.5 h-2 md:h-2.5 text-white" />
+          <div className="absolute -top-1 -right-1 md:-top-2 md:-right-2 z-10">
+            <div className="bg-emerald-500 rounded-full w-5 h-5 md:w-8 md:h-8 flex items-center justify-center shadow-lg ring-2 ring-white">
+              <Check className="w-2.5 h-2.5 md:w-4 md:h-4 text-white" />
             </div>
           </div>
         )}
@@ -416,7 +421,7 @@ export default function SelectTable() {
     )
   }
 
-  // ✅ Component แสดง Order Card - Compact Version
+  // ✅ Component แสดง Order Card - ไม่มี QR Code
   const TakeawayOrderCard = ({ order }: { order: TakeawayOrder }) => {
     const config = getOrderStatusConfig(order.status)
     const StatusIcon = config.icon
@@ -425,30 +430,32 @@ export default function SelectTable() {
 
     return (
       <div 
-        className={`group relative rounded-xl border ${config.border} ${config.bg} p-2 transition-all duration-300 hover:shadow-sm ${
-          isServed ?  'ring-1 ring-lime-200' : ''
+        className={`group relative rounded-2xl border-2 ${config.border} ${config.bg} p-3 md:p-4 transition-all duration-300 hover:shadow-md ${
+          isServed ?  'ring-2 ring-lime-200 ring-offset-2' : ''
         }`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 md:gap-4">
           {/* Status Icon */}
-          <div className={`flex-shrink-0 w-8 h-8 md:w-10 md:h-10 ${config.iconBg} rounded-lg flex items-center justify-center`}>
-            <StatusIcon className={`w-4 h-4 md:w-5 md:h-5 ${config.iconColor}`} />
+          <div className={`flex-shrink-0 w-12 h-12 md:w-16 md:h-16 ${config.iconBg} rounded-2xl flex items-center justify-center`}>
+            <StatusIcon className={`w-6 h-6 md:w-8 md:h-8 ${config.iconColor}`} />
           </div>
 
           {/* Order Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold text-slate-800 text-xs md:text-sm">Q#{queueNumber}</span>
-              <span className={`text-[8px] md:text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${config.iconBg} ${config.iconColor}`}>
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className="font-black text-slate-800 text-base md:text-lg">Q#{queueNumber}</span>
+              <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded-full font-semibold ${config.iconBg} ${config.iconColor}`}>
                 {config.label}
               </span>
             </div>
             
-            <div className="text-[9px] md:text-[10px] text-slate-500 font-mono truncate">{order.order_id}</div>
+            <div className="text-xs md:text-sm text-slate-500 font-mono mb-1 truncate">{order.order_id}</div>
             
-            <div className="flex items-center gap-1 text-[9px] text-slate-400">
-              <Clock className="w-2.5 h-2.5" />
+            <div className="flex items-center gap-2 text-[10px] md:text-xs text-slate-400">
+              <Clock className="w-3 h-3 md:w-3.5 md:h-3.5" />
               <span>{new Date(order.created_at).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})}</span>
+              <span>•</span>
+              <span>{getTimeAgo(order.created_at)}</span>
             </div>
           </div>
           
@@ -456,10 +463,10 @@ export default function SelectTable() {
           {isServed && (
             <button 
               onClick={() => handleTakeawayCheckout(order)}
-              className="flex-shrink-0 px-2 py-1.5 bg-gradient-to-r from-lime-500 to-emerald-500 text-white rounded-lg font-bold text-[10px] md:text-xs hover:from-lime-600 hover:to-emerald-600 transition-all shadow-md flex items-center gap-1"
+              className="flex-shrink-0 px-3 py-2 md:px-4 md:py-3 bg-gradient-to-r from-lime-500 to-emerald-500 text-white rounded-xl font-bold text-xs md:text-sm hover:from-lime-600 hover:to-emerald-600 transition-all shadow-lg shadow-lime-500/25 flex items-center gap-1 md:gap-2"
             >
-              <CreditCard className="w-3 h-3" /> 
-              <span>จ่าย</span>
+              <CreditCard className="w-3 h-3 md:w-4 md:h-4" /> 
+              <span>ชำระเงิน</span>
             </button>
           )}
         </div>
@@ -469,176 +476,232 @@ export default function SelectTable() {
 
   return (
     <>
-      <main className="min-h-screen md:h-screen w-full bg-gradient-to-br from-slate-100 via-blue-50 to-emerald-50 p-3 md:p-4 flex flex-col overflow-x-hidden md:overflow-hidden pb-24 md:pb-4">
-          {/* Header Compact */}
-          <header className="flex-shrink-0 mb-3">
-            <div className="bg-white/80 backdrop-blur rounded-xl p-3 shadow-sm border border-slate-200">
+      <main className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-emerald-50 p-4 md:p-8 pb-32 md:pb-40">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <header className="mb-4 md:mb-6">
+            <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow-lg border">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="bg-emerald-500 p-2 rounded-lg"><UtensilsCrossed className="w-5 h-5 text-white" /></div>
-                  <div><h1 className="text-base md:text-lg font-bold text-slate-800 leading-tight">แผนผังโต๊ะ</h1><p className="text-slate-500 text-[10px] md:text-xs">ร้านไก่ย่างพังโคน</p></div>
+                <div className="flex items-center gap-3">
+                  <div className="bg-emerald-500 p-2 md:p-3 rounded-xl"><UtensilsCrossed className="w-5 h-5 md:w-6 md:h-6 text-white" /></div>
+                  <div><h1 className="text-lg md:text-2xl font-black text-slate-800">แผนผังโต๊ะ</h1><p className="text-slate-500 text-xs md:text-sm">ร้านไก่ย่างพังโคน</p></div>
                 </div>
-                <button onClick={handleManualRefresh} disabled={isRefreshing} className="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 transition-colors">
-                  <RotateCw className={`w-4 h-4 text-emerald-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <button onClick={handleManualRefresh} disabled={isRefreshing} className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-100 transition-colors">
+                  <RotateCw className={`w-5 h-5 text-emerald-600 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </button>
               </div>
             </div>
           </header>
 
-          {/* Main Content Split View: Stack on Mobile | Row on Desktop */}
-          <div className="flex flex-col md:flex-row flex-1 gap-3 min-h-0">
-            
-            {/* Left Column: Takeaway (Full width on Mobile, Fixed width on Desktop) */}
-            <div className="w-full md:w-1/3 lg:w-80 xl:w-96 flex flex-col bg-white/80 backdrop-blur rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-shrink-0 max-h-[350px] md:max-h-full md:h-full">
-                <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-3 py-2 flex-shrink-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-white/20 p-1.5 rounded-lg"><ShoppingBag className="w-4 h-4 text-white" /></div>
-                      <h2 className="text-sm font-bold text-white">สั่งกลับบ้าน</h2>
-                    </div>
-                    {/* Compact Stats */}
-                    {takeawayOrders.length > 0 && (
-                      <div className="flex gap-1">
-                        {pendingCount > 0 && <span className="bg-amber-400 text-amber-900 px-1.5 rounded text-[9px] md:text-[10px] font-bold">{pendingCount}</span>}
-                        {cookingCount > 0 && <span className="bg-orange-400 text-orange-900 px-1.5 rounded text-[9px] md:text-[10px] font-bold">{cookingCount}</span>}
-                        {servedCount > 0 && <span className="bg-lime-400 text-lime-900 px-1.5 rounded text-[9px] md:text-[10px] font-bold">{servedCount}</span>}
-                      </div>
-                    )}
+          {/* Takeaway Section */}
+          <div className="mb-6 md:mb-8 bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 md:px-5 py-3 md:py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 p-2 md:p-2.5 rounded-xl">
+                    <ShoppingBag className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-base md:text-lg font-bold text-white">สั่งกลับบ้าน</h2>
                   </div>
                 </div>
+                
+                {/* Stats Badges */}
+                {takeawayOrders.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    {pendingCount > 0 && (
+                      <span className="bg-amber-400 text-amber-900 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold flex items-center gap-1">
+                        <Timer className="w-3 h-3" /> {pendingCount}
+                      </span>
+                    )}
+                    {cookingCount > 0 && (
+                      <span className="bg-orange-400 text-orange-900 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold flex items-center gap-1">
+                        <ChefHat className="w-3 h-3" /> {cookingCount}
+                      </span>
+                    )}
+                    {servedCount > 0 && (
+                      <span className="bg-lime-400 text-lime-900 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold flex items-center gap-1">
+                        <Wallet className="w-3 h-3" /> {servedCount}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
 
-                <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 md:gap-3">
-                   {/* ปุ่มสร้างรายการใหม่ */}
-                   <button
+            <div className="p-4 md:p-5">
+              <div className="flex gap-4 md:gap-5 flex-col lg:flex-row">
+                {/* ปุ่มสร้างรายการใหม่ */}
+                <div className="w-full lg:w-56 flex-shrink-0">
+                  <button
                     onClick={handleTakeawayClick}
-                    className={`w-full min-h-[60px] md:min-h-[80px] rounded-xl border-2 border-dashed p-2 md:p-3 transition-all relative flex items-center gap-3 text-left
+                    className={`w-full h-full min-h-[120px] md:min-h-[160px] rounded-2xl border-2 border-dashed p-4 md:p-6 transition-all relative flex flex-row lg:flex-col items-center justify-center gap-4 lg:gap-3 text-center
                     ${selectedTable === 'takeaway' 
-                      ? 'shadow-lg ring-2 ring-purple-400/50 bg-gradient-to-br from-purple-500 to-purple-600 text-white border-purple-400 border-solid' 
-                      : 'bg-purple-50/50 hover:bg-purple-100/50 border-purple-300 hover:border-purple-400'
+                      ? 'shadow-xl ring-4 ring-purple-400/50 bg-gradient-to-br from-purple-500 to-purple-600 text-white border-purple-400 border-solid' 
+                      : 'bg-purple-50/50 hover:bg-purple-100/50 border-purple-300 hover:border-purple-400 group'
                     }`}
                   >
-                    <div className={`p-2 rounded-xl ${selectedTable === 'takeaway' ? 'bg-white/20' : 'bg-white shadow-sm'}`}>
-                      <ShoppingBag className={`w-5 h-5 md:w-6 md:h-6 ${selectedTable === 'takeaway' ?  'text-white' : 'text-purple-600'}`} />
+                    <div className={`p-3 md:p-4 rounded-2xl ${selectedTable === 'takeaway' ? 'bg-white/20' : 'bg-white shadow-sm group-hover:shadow-md transition-shadow'}`}>
+                      <ShoppingBag className={`w-8 h-8 md:w-10 md:h-10 ${selectedTable === 'takeaway' ?  'text-white' : 'text-purple-600'}`} />
                     </div>
-                    <div>
-                      <div className={`font-bold text-xs md:text-sm ${selectedTable === 'takeaway' ? 'text-white' : 'text-purple-700'}`}>สร้างรายการใหม่</div>
-                      <div className={`text-[9px] md:text-[10px] ${selectedTable === 'takeaway' ?  'text-white/80' : 'text-purple-400'}`}>กดเพื่อเริ่มสั่งอาหาร</div>
+                    <div className="text-left lg:text-center">
+                      <div className={`font-black text-base md:text-lg mb-0.5 md:mb-1 ${selectedTable === 'takeaway' ? 'text-white' : 'text-purple-700'}`}>
+                        สร้างรายการใหม่
+                      </div>
+                      <div className={`text-xs md:text-sm ${selectedTable === 'takeaway' ?  'text-white/80' : 'text-purple-400'}`}>
+                        กดเพื่อเริ่มสั่งอาหาร
+                      </div>
                     </div>
                     {selectedTable === 'takeaway' && (
-                      <div className="absolute top-2 right-2 bg-white rounded-full p-0.5"><Check className="w-3 h-3 text-purple-600" /></div>
-                    )}
-                  </button>
-
-                  {/* List */}
-                  <div className="flex-1 space-y-2">
-                    {takeawayOrders.length > 0 ? (
-                      takeawayOrders.map((order) => <TakeawayOrderCard key={order.id} order={order} />)
-                    ) : (
-                      <div className="h-16 md:h-20 flex flex-col items-center justify-center text-slate-400">
-                        <Package className="w-6 h-6 md:w-8 md:h-8 opacity-20 mb-1" />
-                        <span className="text-[10px] md:text-xs">ไม่มีรายการ</span>
+                      <div className="absolute -top-2 -right-2 z-10">
+                        <div className="bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg">
+                          <Check className="w-4 h-4 text-purple-600" />
+                        </div>
                       </div>
                     )}
-                  </div>
+                  </button>
                 </div>
-            </div>
 
-            {/* Right Column: Tables (Expands to fill) */}
-            <div className="flex-1 flex flex-col gap-3 min-h-[400px] md:min-h-0">
-              {/* Grid Map */}
-              <div className="flex-1 bg-white/60 backdrop-blur rounded-2xl p-3 md:p-4 shadow-sm border border-slate-200 overflow-hidden relative flex flex-col">
-                <h2 className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-2 flex-shrink-0"><LayoutGrid className="w-3 h-3" /> ผังโต๊ะร้าน</h2>
-                
-                <div className="flex-1 w-full h-full flex items-center justify-center overflow-auto">
-                  {/* Grid Container */}
-                  <div className="grid grid-cols-4 gap-2 md:gap-3 w-full max-w-2xl aspect-[4/3] min-w-[280px]">
-                    {/* Row 1 */}
-                    <div className="w-full h-full"></div>
-                    <div className="w-full h-full">{getTable(1) && <TableCard table={getTable(1)!} />}</div>
-                    <div className="w-full h-full"></div>
-                    <div className="w-full h-full">{getTable(5) && <TableCard table={getTable(5)!} />}</div>
-                    
-                    {/* Row 2 */}
-                    <div className="w-full h-full">{getTable(3) && <TableCard table={getTable(3)!} />}</div>
-                    <div className="w-full h-full">{getTable(2) && <TableCard table={getTable(2)!} />}</div>
-                    <div className="w-full h-full"></div>
-                    <div className="w-full h-full">{getTable(6) && <TableCard table={getTable(6)!} />}</div>
-                    
-                    {/* Row 3 */}
-                    <div className="col-span-2 w-full h-full">{getTable(4) && <TableCard table={getTable(4)!} />}</div>
-                    <div className="w-full h-full"></div>
-                    <div className="w-full h-full">{getTable(7) && <TableCard table={getTable(7)!} />}</div>
-                  </div>
-                </div>
-              </div>
+                {/* รายการ Orders */}
+                <div className="flex-1">
+                  {takeawayOrders.length > 0 ? (
+                    <div className="space-y-3">
+                      {displayOrders.map((order) => (
+                        <TakeawayOrderCard key={order.id} order={order} />
+                      ))}
 
-              {/* Bottom Stats - Responsive Grid */}
-              <div className="grid grid-cols-3 gap-2 md:gap-3 h-auto md:h-20 flex-shrink-0">
-                <div className="bg-white rounded-xl p-2 shadow-sm border flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 text-center md:text-left">
-                  <div className="bg-slate-100 p-1.5 md:p-2 rounded-lg"><UtensilsCrossed className="w-3 h-3 md:w-4 md:h-4 text-slate-600" /></div>
-                  <div><div className="text-sm md:text-lg font-black">{regularTables.length}</div><div className="text-[9px] md:text-[10px] text-slate-500">ทั้งหมด</div></div>
-                </div>
-                <div className="bg-emerald-50 rounded-xl p-2 shadow-sm border border-emerald-200 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 text-center md:text-left">
-                  <div className="bg-emerald-100 p-1.5 md:p-2 rounded-lg"><Check className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" /></div>
-                  <div><div className="text-sm md:text-lg font-black text-emerald-700">{vacantCount}</div><div className="text-[9px] md:text-[10px] text-emerald-600">ว่าง</div></div>
-                </div>
-                <div className="bg-lime-50 rounded-xl p-2 shadow-sm border border-lime-200 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 text-center md:text-left">
-                  <div className="bg-lime-100 p-1.5 md:p-2 rounded-lg"><Banknote className="w-3 h-3 md:w-4 md:h-4 text-lime-600" /></div>
-                  <div><div className="text-sm md:text-lg font-black text-lime-700">{checkoutCount}</div><div className="text-[9px] md:text-[10px] text-lime-600">รอเช็คบิล</div></div>
+                      {hasMoreOrders && (
+                        <button
+                          onClick={() => setShowAllOrders(!showAllOrders)}
+                          className="w-full py-3 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm flex items-center justify-center gap-2 transition-all"
+                        >
+                          {showAllOrders ? (
+                            <>
+                              <ChevronUp className="w-4 h-4" />
+                              ซ่อนรายการ
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-4 h-4" />
+                              ดูทั้งหมด ({takeawayOrders.length} รายการ)
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="h-[120px] md:h-[160px] flex flex-col items-center justify-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400">
+                      <Package className="w-10 h-10 md:w-12 md:h-12 mb-2 md:mb-3 opacity-30" />
+                      <p className="font-medium text-sm md:text-base">ไม่มีรายการกลับบ้าน</p>
+                      <p className="text-xs md:text-sm text-slate-300 mt-1">กดปุ่มเพื่อสร้างรายการใหม่</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-
           </div>
-      </main>
 
-      <QuickMenu currentPage="select-table" />
-      
-      <OrderSuccessModal result={orderResult} onClose={() => setOrderResult(null)} />
-      
-      {checkoutTable && (
-        <CheckoutModal 
-          tableId={Number(checkoutTable.id)} 
-          tableName={checkoutTable.name} 
-          onClose={() => setCheckoutTable(null)} 
-          onSuccess={loadTableData} 
-        />
-      )}
-      
-      {checkoutTakeaway && (
-        <CheckoutModal 
-          tableId={checkoutTakeaway.table_id || 9} 
-          tableName="กลับบ้าน" 
-          onClose={() => setCheckoutTakeaway(null)} 
-          onSuccess={loadTableData} 
-        />
-      )}
-      
-      {qrTakeaway && <TakeawayQRModal order={qrTakeaway} onClose={() => setQrTakeaway(null)} />}
+          {/* Table Layout */}
+          <section className="mb-6 md:mb-8">
+            <div className="bg-white/60 backdrop-blur rounded-2xl p-4 md:p-6 shadow-lg border">
+              <h2 className="text-sm font-bold text-slate-600 mb-4 flex items-center gap-2"><LayoutGrid className="w-4 h-4" /> ผังโต๊ะร้าน</h2>
+              
+              {/* Responsive Grid Map - NO SCROLL */}
+              <div className="w-full px-0">
+                <div className="grid grid-cols-4 gap-2 md:gap-4 max-w-3xl mx-auto w-full">
+                  
+                  {/* Row 1 */}
+                  <div className="aspect-square md:aspect-[4/3] w-full"></div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(1) && <TableCard table={getTable(1)!} />}</div>
+                  <div className="aspect-square md:aspect-[4/3] w-full"></div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(5) && <TableCard table={getTable(5)!} />}</div>
+                  
+                  {/* Row 2 */}
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(3) && <TableCard table={getTable(3)!} />}</div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(2) && <TableCard table={getTable(2)!} />}</div>
+                  <div className="aspect-square md:aspect-[4/3] w-full"></div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(6) && <TableCard table={getTable(6)!} />}</div>
+                  
+                  {/* Row 3 - Table 4 spans 2 cols */}
+                  <div className="col-span-2 aspect-[2/1] md:aspect-[8/3] w-full">{getTable(4) && <TableCard table={getTable(4)!} />}</div>
+                  <div className="aspect-square md:aspect-[4/3] w-full"></div>
+                  <div className="aspect-square md:aspect-[4/3] w-full">{getTable(7) && <TableCard table={getTable(7)!} />}</div>
+                  
+                </div>
+              </div>
+              
+            </div>
+          </section>
 
-      {/* Floating Bottom Bar - Responsive Position (Above QuickMenu on Mobile) */}
-      <div className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 transition-all z-30 w-[90%] md:w-auto ${selectedTable ?  'opacity-100 translate-y-0' : 'opacity-0 pointer-events-none translate-y-8'}`}>
-        <div className="bg-white rounded-2xl p-2 px-4 shadow-2xl border flex items-center justify-between md:justify-center gap-4 ring-1 ring-black/5">
-          <div className="flex items-center gap-2">
-            {selectedTable === 'takeaway' ? (
-              <div className="bg-purple-100 p-1.5 rounded-full"><ShoppingBag className="w-4 h-4 text-purple-600" /></div>
-            ) : (
-              <div className="bg-emerald-100 p-1.5 rounded-full"><UtensilsCrossed className="w-4 h-4 text-emerald-600" /></div>
-            )}
-            <span className={`font-bold text-sm ${selectedTable === 'takeaway' ? 'text-purple-700' : 'text-emerald-700'}`}>
-              {selectedTable === 'takeaway' ? 'กลับบ้าน' : `โต๊ะ ${selectedTableData?.table_number}`}
-            </span>
-          </div>
-          <div className="h-6 w-px bg-slate-200 hidden md:block"></div>
-          <div className="flex gap-2">
-            <button onClick={() => setSelectedTable(null)} disabled={confirming} className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-semibold text-xs text-black transition-colors">ยกเลิก</button>
-            <button onClick={handleConfirm} disabled={confirming} className={`px-4 py-1.5 rounded-lg font-bold text-white text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all ${selectedTable === 'takeaway' ? 'bg-purple-500 hover:bg-purple-600 shadow-purple-500/20' : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'}`}>
-              {confirming ? <Loader className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-              {confirming ? '...' : 'ยืนยัน'}
-            </button>
+          {/* Stats - Adjusted for Mobile Stack */}
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-20">
+            <div className="bg-white rounded-xl p-3 shadow border flex items-center gap-3">
+              <div className="bg-slate-100 p-2.5 rounded-lg"><UtensilsCrossed className="w-5 h-5 text-slate-600" /></div>
+              <div><div className="text-xl font-black">{regularTables.length}</div><div className="text-xs text-slate-500">โต๊ะทั้งหมด</div></div>
+            </div>
+            <div className="bg-emerald-50 rounded-xl p-3 shadow border border-emerald-200 flex items-center gap-3">
+              <div className="bg-emerald-100 p-2.5 rounded-lg"><Check className="w-5 h-5 text-emerald-600" /></div>
+              <div><div className="text-xl font-black text-emerald-700">{vacantCount}</div><div className="text-xs text-emerald-600">โต๊ะว่างทั้งหมด</div></div>
+            </div>
+            <div className="bg-lime-50 rounded-xl p-3 shadow border border-lime-200 flex items-center gap-3">
+              <div className="bg-lime-100 p-2.5 rounded-lg"><Banknote className="w-5 h-5 text-lime-600" /></div>
+              <div><div className="text-xl font-black text-lime-700">{checkoutCount}</div><div className="text-xs text-lime-600">รอเช็คบิล</div></div>
+            </div>
+          </section>
+        </div>
+
+        <QuickMenu currentPage="select-table" />
+        
+        <OrderSuccessModal result={orderResult} onClose={() => setOrderResult(null)} />
+        
+        {checkoutTable && (
+          <CheckoutModal 
+            tableId={Number(checkoutTable.id)} 
+            tableName={checkoutTable.name} 
+            onClose={() => setCheckoutTable(null)} 
+            onSuccess={loadTableData} 
+          />
+        )}
+        
+        {checkoutTakeaway && (
+          <CheckoutModal 
+            tableId={checkoutTakeaway.table_id || 9} 
+            tableName="กลับบ้าน" 
+            onClose={() => setCheckoutTakeaway(null)} 
+            onSuccess={loadTableData} 
+          />
+        )}
+        
+        {qrTakeaway && <TakeawayQRModal order={qrTakeaway} onClose={() => setQrTakeaway(null)} />}
+
+        {/* Bottom Bar - Responsive Positioning */}
+        <div className={`fixed bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6 transition-all z-30 ${selectedTable ?  'opacity-100 translate-y-0' : 'opacity-0 pointer-events-none translate-y-8'}`}>
+          <div className="max-w-md mx-auto bg-white rounded-2xl p-3 shadow-2xl border flex items-center justify-between ring-1 ring-black/5">
+            <div className="flex items-center gap-2">
+              {selectedTable === 'takeaway' ? (
+                <div className="bg-purple-100 p-2 rounded-full">
+                  <ShoppingBag className="w-5 h-5 text-purple-600" />
+                </div>
+              ) : (
+                <div className="bg-emerald-100 p-2 rounded-full">
+                  <UtensilsCrossed className="w-5 h-5 text-emerald-600" />
+                </div>
+              )}
+              <span className={`font-bold text-sm md:text-base ${selectedTable === 'takeaway' ? 'text-purple-700' : 'text-emerald-700'}`}>
+                {selectedTable === 'takeaway' ? 'กลับบ้าน' : `โต๊ะ ${selectedTableData?.table_number}`}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setSelectedTable(null)} disabled={confirming} className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 font-semibold text-xs md:text-sm text-black transition-colors">ยกเลิก</button>
+              <button onClick={handleConfirm} disabled={confirming} className={`px-4 py-2 rounded-xl font-bold text-white text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all ${selectedTable === 'takeaway' ? 'bg-purple-500 hover:bg-purple-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}>
+                {confirming ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {confirming ? 'กำลังสร้าง...' : 'ยืนยัน'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </>
   )
 }
