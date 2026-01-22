@@ -16,17 +16,20 @@ import {
 
 export default function LoginPage() {
   const router = useRouter()
-  const { user, login, loading:  authLoading } = useAuth()
+  
+  // Mock Auth Context
+  const authContext = useAuth ? useAuth() : { user: null, login: async () => ({ success: true, error: '' }), loading: false }
+  const { user, login, loading: authLoading } = authContext
+
   const [userid, setUserid] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // ถ้า login แล้ว redirect ไปหน้าหลัก
   useEffect(() => {
-    if (! authLoading && user) {
-      router. push('/')
+    if (!authLoading && user) {
+      router.push('/')
     }
   }, [user, authLoading, router])
 
@@ -34,7 +37,7 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
 
-    if (!userid. trim()) {
+    if (!userid.trim()) {
       setError('กรุณากรอกรหัสผู้ใช้')
       return
     }
@@ -44,120 +47,124 @@ export default function LoginPage() {
     }
 
     setLoading(true)
-    const result = await login(userid. trim(), password)
+    // await new Promise(r => setTimeout(r, 1000)) 
+    
+    const result = await login(userid.trim(), password)
     setLoading(false)
 
     if (result.success) {
-      router. push('/')
+      router.push('/')
     } else {
-      setError(result.error || 'เข้าสู่ระบบไม่สำเร็จ')
+      setError((result as any).error || 'เข้าสู่ระบบไม่สำเร็จ')
     }
   }
 
   if (authLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white/80">กำลังตรวจสอบ...</p>
-        </div>
+      <main className="min-h-screen flex items-center justify-center bg-[#fafaf9]">
+        <Loader2 className="w-10 h-10 text-amber-600 animate-spin" />
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 p-4">
-      {/* Background Effects */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
-      </div>
+    // เปลี่ยน Background เป็นสี Stone-50 (ขาวอมเทาอุ่นๆ)
+    <main className="min-h-screen flex items-center justify-center bg-stone-50 p-4 font-sans text-stone-800">
+      
+      {/* Background Pattern: เปลี่ยนจุดเป็นสีน้ำตาลจางๆ */}
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#78350f 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
 
-      {/* Login Card */}
-      <div className="relative w-full max-w-md">
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-          {/* Header */}
-          <div className="relative p-8 text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-500/20"></div>
-            <div className="relative">
-              <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <UtensilsCrossed className="w-10 h-10 text-white" />
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-stone-100 overflow-hidden relative z-10">
+        
+        {/* Header */}
+        <div className="pt-10 pb-6 px-8 text-center">
+          {/* Logo Background: สีส้ม/น้ำตาลอ่อนจางๆ */}
+          <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-amber-700">
+            <UtensilsCrossed className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-bold text-stone-800 mb-1">ร้านไก่ย่างพังโคน</h1>
+          <p className="text-stone-500 text-sm">ลงชื่อเข้าใช้เพื่อจัดการระบบ</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="px-8 pb-10 space-y-5">
+          
+          {error && (
+            <div className="flex items-center gap-3 p-3 bg-red-50 text-red-600 border border-red-100 rounded-lg text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
+          {/* User Input */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-stone-600 ml-1">รหัสผู้ใช้</label>
+            <div className="relative group">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 group-focus-within:text-amber-600 transition-colors">
+                <User className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl font-black text-white mb-1">ร้านไก่ย่างพังโคน</h1>
-              <p className="text-emerald-200 text-sm">ระบบจัดการร้านอาหาร</p>
+              <input
+                type="text"
+                value={userid}
+                onChange={(e) => setUserid(e.target.value)}
+                placeholder="กรอกรหัสผู้ใช้ของคุณ"
+                // เปลี่ยน Focus border เป็นสี Amber (น้ำตาลทอง)
+                className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all"
+                disabled={loading}
+              />
             </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-8 pt-4 space-y-5">
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-center gap-3 p-4 bg-red-500/20 border border-red-400/30 rounded-xl">
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                <p className="text-red-200 text-sm">{error}</p>
+          {/* Password Input */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-stone-600 ml-1">รหัสผ่าน</label>
+            <div className="relative group">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 group-focus-within:text-amber-600 transition-colors">
+                <Lock className="w-5 h-5" />
               </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="กรอกรหัสผ่าน"
+                className="w-full pl-11 pr-12 py-3 bg-white border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all [&::-ms-reveal]:hidden"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-all"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Submit Button: เปลี่ยนเป็นสี Amber-600 (น้ำตาลทองเข้ม) */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>กำลังเข้าสู่ระบบ...</span>
+              </>
+            ) : (
+              <>
+                <span>เข้าสู่ระบบ</span>
+                <LogIn className="w-5 h-5" />
+              </>
             )}
-
-            {/* User ID */}
-            <div>
-              <label className="block text-emerald-200 text-sm font-medium mb-2">รหัสผู้ใช้</label>
-              <div className="relative">
-                <User className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={userid}
-                  onChange={(e) => setUserid(e.target. value)}
-                  placeholder="กรอกรหัสผู้ใช้"
-                  className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-emerald-200 text-sm font-medium mb-2">รหัสผ่าน</label>
-              <div className="relative">
-                <Lock className="w-5 h-5 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="กรอกรหัสผ่าน"
-                  className="w-full pl-12 pr-12 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(! showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover: to-teal-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  กำลังเข้าสู่ระบบ...
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5" />
-                  เข้าสู่ระบบ
-                </>
-              )}
-            </button>
-          </form>
-        </div>
+          </button>
+          
+          <div className="text-center pt-2">
+             <p className="text-xs text-stone-400">
+               ติดปัญหาการใช้งาน? ติดต่อผู้ดูแลระบบ
+             </p>
+          </div>
+        </form>
       </div>
     </main>
   )
