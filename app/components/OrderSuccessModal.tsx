@@ -180,7 +180,7 @@ export default function OrderSuccessModal({ result, onClose }: OrderSuccessModal
               ) : (
                 <>
                   <UtensilsCrossed className="w-5 h-5" />
-                  <span className="font-bold">โต๊ะ {tableNumber}</span>
+                  <span className="font-bold"> {tableNumber}</span>
                 </>
               )}
             </div>

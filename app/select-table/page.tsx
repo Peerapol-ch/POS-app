@@ -689,7 +689,7 @@ export default function SelectTable() {
                 </div>
               )}
               <span className={`font-bold text-sm md:text-base ${selectedTable === 'takeaway' ? 'text-purple-700' : 'text-emerald-700'}`}>
-                {selectedTable === 'takeaway' ? 'กลับบ้าน' : `โต๊ะ ${selectedTableData?.table_number}`}
+                {selectedTable === 'takeaway' ? 'กลับบ้าน' : ` ${selectedTableData?.table_number}`}
               </span>
             </div>
             <div className="flex gap-2">
