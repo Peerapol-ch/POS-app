@@ -108,7 +108,7 @@ function DashboardContent() {
 
       const regularTables = (tables || []).filter((t) => {
         const name = String(t.table_number).toLowerCase()
-        return !name.includes('กลับ���้าน') && !name.includes('takeaway')
+        return !name.includes('กลับบ้าน') && !name.includes('takeaway')
       })
 
       const vacantTables = regularTables.filter((t) => t.current_status?.toLowerCase() === 'vacant').length
@@ -638,7 +638,7 @@ function DashboardContent() {
               <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-white" />
-                  <h2 className="text-base font-bold text-white">ออเดอร์ล��าสุด</h2>
+                  <h2 className="text-base font-bold text-white">ออเดอร์ล่าสุด</h2>
                 </div>
                 <Link
                   href="/KDS"
