@@ -19,18 +19,16 @@ import {
   ChevronUp,
   Clock,
   Package,
-  Flame,
-  CheckCircle2,
   Timer,
   ChefHat,
   Wallet
 } from 'lucide-react'
 
 interface Table {
-  id:   string | number
+  id: string | number
   table_number: string | number
-  seat_capacity? :  number
-  current_status? :  string
+  seat_capacity?: number
+  current_status?: string
 }
 
 interface TakeawayOrder {
@@ -38,7 +36,7 @@ interface TakeawayOrder {
   order_id: string
   created_at: string
   status: string
-  table_id? :  number 
+  table_id?: number 
 }
 
 export default function SelectTable() {
@@ -112,7 +110,7 @@ export default function SelectTable() {
     await loadTableData()
   }
 
-  const handleTableClick = (table:  Table) => {
+  const handleTableClick = (table: Table) => {
     const status = table.current_status?.toLowerCase()
     
     if (status === 'vacant') {
@@ -197,7 +195,7 @@ export default function SelectTable() {
           expires_at: expiresAt.toISOString()
         }])
 
-        const { error:  insertOrderError } = await supabase.from('orders').insert([{
+        const { error: insertOrderError } = await supabase.from('orders').insert([{
           order_id: orderId,
           table_id: takeawayTableId,
           status: 'pending',
@@ -235,7 +233,7 @@ export default function SelectTable() {
         if (insertOrderError) throw insertOrderError
         
         await supabase.from('table_sessions').insert([{
-          table_id:  Number(selectedTable),
+          table_id: Number(selectedTable),
           token: sessionToken,
           status: 'active',
           expires_at: expiresAt.toISOString()
@@ -255,7 +253,7 @@ export default function SelectTable() {
         })
       }
       setSelectedTable(null)
-    } catch (err:  any) {
+    } catch (err: any) {
       console.error('Confirm raw error:', err)
       setActionError(err?.message || 'เกิดข้อผิดพลาด')
     } finally {
@@ -265,15 +263,14 @@ export default function SelectTable() {
 
   const getStatusInfo = (status: string | null | undefined) => {
     switch (status?.toLowerCase()) {
-      case 'vacant':  return { label: 'ว่าง', badgeBg: 'bg-emerald-100', badgeColor: 'text-emerald-700' }
-      case 'occupied': return { label:  'ไม่ว่าง', badgeBg: 'bg-orange-100', badgeColor: 'text-orange-700' }
-      case 'reserved': return { label:  'จองไว้', badgeBg: 'bg-blue-100', badgeColor: 'text-blue-700' }
-      case 'checkout': return { label: 'เช็คบิล', badgeBg: 'bg-lime-200', badgeColor:  'text-lime-800' }
-      default: return { label:  'ไม่ทราบ', badgeBg: 'bg-slate-200', badgeColor:  'text-slate-600' }
+      case 'vacant': return { label: 'ว่าง', badgeBg: 'bg-emerald-100', badgeColor: 'text-emerald-700' }
+      case 'occupied': return { label: 'ไม่ว่าง', badgeBg: 'bg-orange-100', badgeColor: 'text-orange-700' }
+      case 'reserved': return { label: 'จองไว้', badgeBg: 'bg-blue-100', badgeColor: 'text-blue-700' }
+      case 'checkout': return { label: 'เช็คบิล', badgeBg: 'bg-lime-200', badgeColor: 'text-lime-800' }
+      default: return { label: 'ไม่ทราบ', badgeBg: 'bg-slate-200', badgeColor: 'text-slate-600' }
     }
   }
 
-  // ✅ ฟังก์ชันแสดงสถานะ Order พร้อม Icon
   const getOrderStatusConfig = (status: string) => {
     switch (status.toLowerCase()) {
       case 'pending': 
@@ -283,14 +280,14 @@ export default function SelectTable() {
           border: 'border-amber-200',
           iconBg: 'bg-amber-100',
           icon: Timer,
-          iconColor:  'text-amber-600'
+          iconColor: 'text-amber-600'
         }
-      case 'cooking':  
+      case 'cooking': 
         return { 
-          label:  'กำลังทำ', 
+          label: 'กำลังทำ', 
           bg: 'bg-orange-50', 
           border: 'border-orange-200',
-          iconBg:  'bg-orange-100',
+          iconBg: 'bg-orange-100',
           icon: ChefHat,
           iconColor: 'text-orange-600'
         }
@@ -300,7 +297,7 @@ export default function SelectTable() {
           bg: 'bg-lime-50', 
           border: 'border-lime-300',
           iconBg: 'bg-lime-100',
-          icon:  Wallet,
+          icon: Wallet,
           iconColor: 'text-lime-600'
         }
       default: 
@@ -309,7 +306,7 @@ export default function SelectTable() {
           bg: 'bg-slate-50', 
           border: 'border-slate-200',
           iconBg: 'bg-slate-100',
-          icon:  Package,
+          icon: Package,
           iconColor: 'text-slate-500'
         }
     }
@@ -328,8 +325,7 @@ export default function SelectTable() {
     return `${Math.floor(diffHours / 24)} วันที่แล้ว`
   }
 
-  // ✅ ดึงหมายเลขคิวจาก Order ID
-  const getQueueNumber = (orderId:  string) => {
+  const getQueueNumber = (orderId: string) => {
     return orderId.slice(-4)
   }
   
@@ -353,15 +349,15 @@ export default function SelectTable() {
   const selectedTableData = data.find((t) => String(t.id) === selectedTable)
   const getTable = (num: number) => regularTables.find((t) => getTableNumber(t.table_number) === num)
 
-  const displayOrders = showAllOrders ? takeawayOrders :  takeawayOrders.slice(0, 3)
+  const displayOrders = showAllOrders ? takeawayOrders : takeawayOrders.slice(0, 3)
   const hasMoreOrders = takeawayOrders.length > 3
 
   const pendingCount = takeawayOrders.filter(o => o.status.toLowerCase() === 'pending').length
   const cookingCount = takeawayOrders.filter(o => o.status.toLowerCase() === 'cooking').length
   const servedCount = takeawayOrders.filter(o => o.status.toLowerCase() === 'served').length
   
-  // ✅ TableCard - ปรับปรุงใหม่ให้รองรับ Mobile (Compact Mode)
-  const TableCard = ({ table, className = '' }: { table: Table; className?:  string }) => {
+  // TableCard Component
+  const TableCard = ({ table, className = '' }: { table: Table; className?: string }) => {
     const num = getTableNumber(table.table_number)
     const statusInfo = getStatusInfo(table.current_status)
     const status = table.current_status?.toLowerCase()
@@ -383,27 +379,23 @@ export default function SelectTable() {
               ? 'shadow-xl ring-2 md:ring-4 ring-emerald-400/50 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-400' 
               : isVacant 
               ? 'bg-white hover:shadow-lg border-slate-200 hover:border-emerald-400' 
-              :  isCheckout 
+              : isCheckout 
               ? 'bg-lime-50 border-lime-400 hover:shadow-lg hover:bg-lime-100 cursor-pointer' 
               : 'bg-slate-100 opacity-60 cursor-not-allowed border-slate-200'}
           `}
         >
-          {/* Icon - Smaller on Mobile */}
           <div className={`mb-0.5 md:mb-1 transition-transform ${isHovered && isClickable && !isSelected ? 'scale-110' : ''}`}>
-            {isCheckout ?  (
+            {isCheckout ? (
               <Banknote className={`w-4 h-4 md:w-8 md:h-8 ${isSelected ? 'text-white' : 'text-lime-600'}`} />
             ) : (
-              <UtensilsCrossed className={`w-4 h-4 md:w-8 md:h-8 ${isSelected ?  'text-white' : 'text-slate-400'}`} />
+              <UtensilsCrossed className={`w-4 h-4 md:w-8 md:h-8 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
             )}
           </div>
 
-          {/* Table Number */}
           <div className={`font-black text-sm sm:text-base md:text-2xl ${isSelected ? 'text-white' : isCheckout ? 'text-lime-800' : 'text-slate-800'}`}>{num}</div>
           
-          {/* Seat Capacity */}
           <div className={`text-[9px] md:text-xs mt-0.5 ${isSelected ? 'text-white/80' : isCheckout ? 'text-lime-700' : 'text-slate-500'}`}>{table.seat_capacity || 0} ที่</div>
           
-          {/* Status Badge - Absolute Position Bottom */}
           <div className="absolute bottom-1 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-2 md:bottom-2 w-full md:w-auto px-1">
             <span className={`block w-full md:w-auto ${statusInfo.badgeBg} ${statusInfo.badgeColor} px-1 py-0.5 rounded md:rounded-full text-[8px] md:text-[10px] font-bold truncate`}>
                 {statusInfo.label}
@@ -421,7 +413,7 @@ export default function SelectTable() {
     )
   }
 
-  // ✅ Component แสดง Order Card - ไม่มี QR Code
+  // TakeawayOrderCard Component
   const TakeawayOrderCard = ({ order }: { order: TakeawayOrder }) => {
     const config = getOrderStatusConfig(order.status)
     const StatusIcon = config.icon
@@ -431,16 +423,14 @@ export default function SelectTable() {
     return (
       <div 
         className={`group relative rounded-2xl border-2 ${config.border} ${config.bg} p-3 md:p-4 transition-all duration-300 hover:shadow-md ${
-          isServed ?  'ring-2 ring-lime-200 ring-offset-2' : ''
+          isServed ? 'ring-2 ring-lime-200 ring-offset-2' : ''
         }`}
       >
         <div className="flex items-center gap-3 md:gap-4">
-          {/* Status Icon */}
           <div className={`flex-shrink-0 w-12 h-12 md:w-16 md:h-16 ${config.iconBg} rounded-2xl flex items-center justify-center`}>
             <StatusIcon className={`w-6 h-6 md:w-8 md:h-8 ${config.iconColor}`} />
           </div>
 
-          {/* Order Info */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="font-black text-slate-800 text-base md:text-lg">Q#{queueNumber}</span>
@@ -459,7 +449,6 @@ export default function SelectTable() {
             </div>
           </div>
           
-          {/* Action Button */}
           {isServed && (
             <button 
               onClick={() => handleTakeawayCheckout(order)}
@@ -495,7 +484,6 @@ export default function SelectTable() {
 
           {/* Takeaway Section */}
           <div className="mb-6 md:mb-8 bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-            {/* Header */}
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 md:px-5 py-3 md:py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -507,7 +495,6 @@ export default function SelectTable() {
                   </div>
                 </div>
                 
-                {/* Stats Badges */}
                 {takeawayOrders.length > 0 && (
                   <div className="flex items-center gap-2">
                     {pendingCount > 0 && (
@@ -532,7 +519,6 @@ export default function SelectTable() {
 
             <div className="p-4 md:p-5">
               <div className="flex gap-4 md:gap-5 flex-col lg:flex-row">
-                {/* ปุ่มสร้างรายการใหม่ */}
                 <div className="w-full lg:w-56 flex-shrink-0">
                   <button
                     onClick={handleTakeawayClick}
@@ -543,13 +529,13 @@ export default function SelectTable() {
                     }`}
                   >
                     <div className={`p-3 md:p-4 rounded-2xl ${selectedTable === 'takeaway' ? 'bg-white/20' : 'bg-white shadow-sm group-hover:shadow-md transition-shadow'}`}>
-                      <ShoppingBag className={`w-8 h-8 md:w-10 md:h-10 ${selectedTable === 'takeaway' ?  'text-white' : 'text-purple-600'}`} />
+                      <ShoppingBag className={`w-8 h-8 md:w-10 md:h-10 ${selectedTable === 'takeaway' ? 'text-white' : 'text-purple-600'}`} />
                     </div>
                     <div className="text-left lg:text-center">
                       <div className={`font-black text-base md:text-lg mb-0.5 md:mb-1 ${selectedTable === 'takeaway' ? 'text-white' : 'text-purple-700'}`}>
                         สร้างรายการใหม่
                       </div>
-                      <div className={`text-xs md:text-sm ${selectedTable === 'takeaway' ?  'text-white/80' : 'text-purple-400'}`}>
+                      <div className={`text-xs md:text-sm ${selectedTable === 'takeaway' ? 'text-white/80' : 'text-purple-400'}`}>
                         กดเพื่อเริ่มสั่งอาหาร
                       </div>
                     </div>
@@ -563,7 +549,6 @@ export default function SelectTable() {
                   </button>
                 </div>
 
-                {/* รายการ Orders */}
                 <div className="flex-1">
                   {takeawayOrders.length > 0 ? (
                     <div className="space-y-3">
@@ -607,7 +592,6 @@ export default function SelectTable() {
             <div className="bg-white/60 backdrop-blur rounded-2xl p-4 md:p-6 shadow-lg border">
               <h2 className="text-sm font-bold text-slate-600 mb-4 flex items-center gap-2"><LayoutGrid className="w-4 h-4" /> ผังโต๊ะร้าน</h2>
               
-              {/* Responsive Grid Map - NO SCROLL */}
               <div className="w-full px-0">
                 <div className="grid grid-cols-4 gap-2 md:gap-4 max-w-3xl mx-auto w-full">
                   
@@ -623,7 +607,7 @@ export default function SelectTable() {
                   <div className="aspect-square md:aspect-[4/3] w-full"></div>
                   <div className="aspect-square md:aspect-[4/3] w-full">{getTable(6) && <TableCard table={getTable(6)!} />}</div>
                   
-                  {/* Row 3 - Table 4 spans 2 cols */}
+                  {/* Row 3 */}
                   <div className="col-span-2 aspect-[2/1] md:aspect-[8/3] w-full">{getTable(4) && <TableCard table={getTable(4)!} />}</div>
                   <div className="aspect-square md:aspect-[4/3] w-full"></div>
                   <div className="aspect-square md:aspect-[4/3] w-full">{getTable(7) && <TableCard table={getTable(7)!} />}</div>
@@ -634,7 +618,7 @@ export default function SelectTable() {
             </div>
           </section>
 
-          {/* Stats - Adjusted for Mobile Stack */}
+          {/* Stats */}
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-20">
             <div className="bg-white rounded-xl p-3 shadow border flex items-center gap-3">
               <div className="bg-slate-100 p-2.5 rounded-lg"><UtensilsCrossed className="w-5 h-5 text-slate-600" /></div>
@@ -651,7 +635,8 @@ export default function SelectTable() {
           </section>
         </div>
 
-        <QuickMenu currentPage="select-table" />
+        {/* ✅ QuickMenu - ซ่อนเมื่อเลือกโต๊ะแล้ว */}
+        <QuickMenu currentPage="select-table" hide={!!selectedTable} />
         
         <OrderSuccessModal result={orderResult} onClose={() => setOrderResult(null)} />
         
@@ -675,8 +660,8 @@ export default function SelectTable() {
         
         {qrTakeaway && <TakeawayQRModal order={qrTakeaway} onClose={() => setQrTakeaway(null)} />}
 
-        {/* Bottom Bar - Responsive Positioning */}
-        <div className={`fixed bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6 transition-all z-30 ${selectedTable ?  'opacity-100 translate-y-0' : 'opacity-0 pointer-events-none translate-y-8'}`}>
+        {/* Bottom Bar */}
+        <div className={`fixed bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6 transition-all z-30 ${selectedTable ? 'opacity-100 translate-y-0' : 'opacity-0 pointer-events-none translate-y-8'}`}>
           <div className="max-w-md mx-auto bg-white rounded-2xl p-3 shadow-2xl border flex items-center justify-between ring-1 ring-black/5">
             <div className="flex items-center gap-2">
               {selectedTable === 'takeaway' ? (

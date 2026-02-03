@@ -21,6 +21,7 @@ import {
 
 interface QuickMenuProps {
   currentPage?: 'home' | 'select-table' | 'kds' | 'accounting' | 'menu-management' | 'ingredients' | 'users' | 'customers'
+  hide?: boolean
 }
 
 interface CurrentUser {
@@ -30,12 +31,11 @@ interface CurrentUser {
   name: string
 }
 
-export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
+export default function QuickMenu({ currentPage = 'home', hide = false }: QuickMenuProps) {
   const router = useRouter()
   const [showMenu, setShowMenu] = useState(false)
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
 
-  // ✅ โหลด User จาก LocalStorage
   useEffect(() => {
     const userStr = localStorage.getItem('currentUser')
     if (userStr) {
@@ -48,7 +48,12 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
     }
   }, [])
 
-  // ✅ ฟังก์ชันตรวจสอบสิทธิ์
+  useEffect(() => {
+    if (hide) {
+      setShowMenu(false)
+    }
+  }, [hide])
+
   const canAccess = (page: string): boolean => {
     if (!currentUser) return false
 
@@ -73,9 +78,7 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
       icon: Home,
       label: 'หน้าหลัก',
       description: 'Dashboard & สรุปยอด',
-      color: 'from-violet-500 to-purple-600',
-      iconBg: 'bg-violet-100',
-      iconColor: 'text-violet-600',
+      iconBg: 'bg-violet-500',
       page: 'home',
     },
     {
@@ -83,74 +86,59 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
       icon: LayoutGrid,
       label: 'แผนผังโต๊ะ',
       description: 'เปิดโต๊ะ & สั่งอาหาร',
-      color: 'from-emerald-500 to-teal-600',
-      iconBg: 'bg-emerald-100',
-      iconColor: 'text-emerald-600',
+      iconBg: 'bg-emerald-500',
       page: 'select-table',
     },
     {
       href: '/KDS',
       icon: ChefHat,
       label: 'หน้าจอครัว',
-      description: 'จัดการออเดอร์ & เมนู',
-      color: 'from-blue-500 to-cyan-600',
-      iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600',
+      description: 'จัดการออเดอร์',
+      iconBg: 'bg-blue-500',
       page: 'kds',
     },
     {
       href: '/accounting',
       icon: BarChart3,
       label: 'การบัญชี',
-      description: 'รายรับ & สถิติการขาย',
-      color: 'from-amber-500 to-orange-600',
-      iconBg: 'bg-amber-100',
-      iconColor: 'text-amber-600',
+      description: 'รายรับ & สถิติ',
+      iconBg: 'bg-amber-500',
       page: 'accounting',
     },
     {
       href: '/menu-management',
       icon: UtensilsCrossed,
       label: 'จัดการเมนู',
-      description: 'เพิ่ม แก้ไข ลบเมนูอาหาร',
-      color: 'from-rose-500 to-pink-600',
-      iconBg: 'bg-rose-100',
-      iconColor: 'text-rose-600',
+      description: 'เพิ่ม แก้ไข ลบ',
+      iconBg: 'bg-rose-500',
       page: 'menu-management',
     },
     {
       href: '/ingredients',
       icon: Package,
       label: 'วัตถุดิบ',
-      description: 'จัดการสต็อกวัตถุดิบ',
-      color: 'from-teal-500 to-cyan-600',
-      iconBg: 'bg-teal-100',
-      iconColor: 'text-teal-600',
+      description: 'จัดการสต็อก',
+      iconBg: 'bg-teal-500',
       page: 'ingredients',
     },
     {
       href: '/users',
       icon: Shield,
       label: 'จัดการผู้ใช้',
-      description: 'สิทธิ์การเข้าถึงระบบ',
-      color: 'from-indigo-500 to-purple-600',
-      iconBg: 'bg-indigo-100',
-      iconColor: 'text-indigo-600',
+      description: 'สิทธิ์การเข้าถึง',
+      iconBg: 'bg-indigo-500',
       page: 'users',
     },
     {
       href: '/customers',
       icon: Users,
       label: 'ข้อมูลลูกค้า',
-      description: 'ประวัติ & คะแนนสะสม',
-      color: 'from-purple-500 to-pink-600',
-      iconBg: 'bg-purple-100',
-      iconColor: 'text-purple-600',
+      description: 'ประวัติ & คะแนน',
+      iconBg: 'bg-pink-500',
       page: 'customers',
     },
   ]
 
-  // ✅ กรองเฉพาะเมนูที่ผู้ใช้มีสิทธิ์เข้าถึง และไม่ใช่หน้าปัจจุบัน
   const visibleItems = allMenuItems.filter(
     (item) => item.page !== currentPage && canAccess(item.page)
   )
@@ -162,21 +150,22 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
     }
   }
 
-  // ✅ getRoleLabel
-  const getRoleLabel = (role: string) => {
+  const getRoleConfig = (role: string) => {
     switch (role) {
       case 'owner':
-        return 'เจ้าของร้าน'
+        return { label: 'เจ้าของร้าน', color: 'text-amber-400', bg: 'bg-amber-500/20' }
       case 'chef':
-        return 'พ่อครัว'
+        return { label: 'พ่อครัว', color: 'text-orange-400', bg: 'bg-orange-500/20' }
       case 'staff':
-        return 'พนักงาน'
+        return { label: 'พนักงาน', color: 'text-blue-400', bg: 'bg-blue-500/20' }
       default:
-        return 'ผู้ใช้'
+        return { label: 'ผู้ใช้', color: 'text-gray-400', bg: 'bg-gray-500/20' }
     }
   }
 
-  if (!currentUser) return null
+  if (!currentUser || hide) return null
+
+  const roleConfig = getRoleConfig(currentUser.role)
 
   return (
     <>
@@ -184,70 +173,74 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
       <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
         {/* Menu Popup */}
         {showMenu && (
-          <div className="absolute bottom-16 right-0 w-[calc(100vw-32px)] sm:w-80 animate-in slide-in-from-bottom-4 zoom-in-95 duration-300 origin-bottom-right">
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+          <div className="absolute bottom-16 md:bottom-18 right-0 w-[calc(100vw-32px)] sm:w-80 animate-in slide-in-from-bottom-4 zoom-in-95 duration-300 origin-bottom-right">
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+              
               {/* Header */}
-              <div className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
-                <div className="absolute inset-0 opacity-20">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+              <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-4">
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
                 </div>
-                <div className="relative p-4 md:p-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center border border-white/20 shrink-0">
-                      <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-white font-bold truncate">{currentUser.name}</p>
-                      <p className="text-gray-400 text-xs md:text-sm">{getRoleLabel(currentUser.role)}</p>
+                
+                <div className="relative flex items-center gap-3">
+                  <div className={`w-11 h-11 ${roleConfig.bg} rounded-xl flex items-center justify-center ring-2 ring-white/10`}>
+                    <User className={`w-5 h-5 ${roleConfig.color}`} />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold truncate text-sm">{currentUser.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className={`text-xs ${roleConfig.color}`}>{roleConfig.label}</span>
                     </div>
                   </div>
+
+                  <button
+                    onClick={() => setShowMenu(false)}
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                  >
+                    <X className="w-4 h-4 text-white/70" />
+                  </button>
                 </div>
               </div>
 
               {/* Menu Items */}
-              <div className="p-2 md:p-3 space-y-1 md:space-y-2 max-h-[60vh] overflow-y-auto">
-                {visibleItems.map((item) => (
+              <div className="p-2 max-h-[55vh] overflow-y-auto">
+                {visibleItems.map((item, index) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={() => setShowMenu(false)}
-                    className="group relative flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-gray-50 transition-all duration-200 overflow-hidden"
+                    className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-all duration-200"
+                    style={{ animationDelay: `${index * 30}ms` }}
                   >
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-r ${item.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}
-                    />
-                    <div
-                      className={`relative w-10 h-10 md:w-12 md:h-12 ${item.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shrink-0`}
-                    >
-                      <item.icon className={`w-5 h-5 md:w-6 md:h-6 ${item.iconColor}`} />
+                    <div className={`w-10 h-10 ${item.iconBg} rounded-xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}>
+                      <item.icon className="w-5 h-5 text-white" />
                     </div>
+                    
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-800 text-sm md:text-base group-hover:text-gray-900 transition-colors truncate">
+                      <p className="font-medium text-gray-800 text-sm group-hover:text-gray-900 truncate">
                         {item.label}
                       </p>
-                      <p className="text-xs md:text-sm text-gray-500 truncate">{item.description}</p>
+                      <p className="text-xs text-gray-400 truncate">{item.description}</p>
                     </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0 shrink-0">
-                      <ArrowRight className={`w-4 h-4 md:w-5 md:h-5 ${item.iconColor}`} />
-                    </div>
+                    
+                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 ))}
               </div>
 
-              {/* Logout Button */}
-              <div className="p-2 md:p-3 border-t border-gray-100">
+              {/* Logout */}
+              <div className="p-2 border-t border-gray-100">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-red-50 transition-all text-red-600"
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-red-50 transition-colors group"
                 >
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
-                    <LogOut className="w-5 h-5 md:w-6 md:h-6" />
+                  <div className="w-10 h-10 bg-red-100 group-hover:bg-red-200 rounded-xl flex items-center justify-center transition-colors">
+                    <LogOut className="w-5 h-5 text-red-500" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-bold text-sm md:text-base">ออกจากระบบ</p>
-                    <p className="text-xs md:text-sm text-red-400">Logout</p>
+                    <p className="font-medium text-red-600 text-sm">ออกจากระบบ</p>
                   </div>
                 </button>
               </div>
@@ -255,28 +248,30 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
           </div>
         )}
 
-        {/* FAB Button */}
+        {/* FAB Button - ✅ ลบ Badge ออกแล้ว */}
         <button
           onClick={() => setShowMenu(!showMenu)}
-          className={`relative w-12 h-12 md:w-14 md:h-14 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-300 ${
+          className={`relative w-13 h-13 md:w-14 md:h-14 rounded-xl shadow-lg flex items-center justify-center transition-all duration-300 ${
             showMenu
-              ? 'bg-gray-800 rotate-45 scale-90'
-              : 'bg-gradient-to-br from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 hover:scale-105 hover:shadow-2xl'
+              ? 'bg-slate-700 rotate-45 scale-95'
+              : 'bg-gradient-to-br from-slate-700 to-slate-900 hover:from-slate-600 hover:to-slate-800 hover:scale-105 hover:shadow-xl'
           }`}
+          style={{ width: '52px', height: '52px' }}
         >
           <div className="relative">
-            {showMenu ? <X className="w-5 h-5 md:w-6 md:h-6 text-white" /> : <Plus className="w-5 h-5 md:w-6 md:h-6 text-white" />}
+            {showMenu ? (
+              <X className="w-5 h-5 text-white" />
+            ) : (
+              <Plus className="w-5 h-5 text-white" />
+            )}
           </div>
-          {!showMenu && (
-            <div className="absolute inset-0 rounded-2xl border-2 border-white/20 animate-ping opacity-30" />
-          )}
         </button>
       </div>
 
       {/* Backdrop */}
       {showMenu && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] animate-in fade-in duration-200"
           onClick={() => setShowMenu(false)}
         />
       )}

@@ -232,7 +232,7 @@ export default function OrderBillModal({
             </div>
             
             <div class="order-type ${isTakeaway ?  'takeaway' : 'dine-in'}">
-              ${isTakeaway ?  'สั่งกลับบ้าน (Takeaway)' : `โต๊ะ ${tableNumber || tableId}`}
+              ${isTakeaway ?  'สั่งกลับบ้าน (Takeaway)' : `${tableNumber || tableId}`}
             </div>
             
             <div class="footer">
@@ -350,7 +350,7 @@ export default function OrderBillModal({
                   ) : (
                     <>
                       <UtensilsCrossed className="w-5 h-5" />
-                      <span className="font-bold text-lg">โต๊ะ {tableNumber || tableId}</span>
+                      <span className="font-bold text-lg">{tableNumber || tableId}</span>
                     </>
                   )}
                 </div>
