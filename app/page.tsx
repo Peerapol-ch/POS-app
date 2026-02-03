@@ -31,6 +31,7 @@ import {
   User,
   LogOut,
   UserCircle,
+  RefreshCw,
 } from 'lucide-react'
 
 interface DashboardData {
@@ -56,15 +57,14 @@ interface CurrentUser {
 function DashboardContent() {
   const router = useRouter()
   
-  // ✅ ใช้ State แทน AuthContext
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [greeting, setGreeting] = useState('')
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // ✅ โหลด User จาก LocalStorage
   useEffect(() => {
     const userStr = localStorage.getItem('currentUser')
     if (userStr) {
@@ -85,10 +85,10 @@ function DashboardContent() {
 
   useEffect(() => {
     const hour = currentTime.getHours()
-    if (hour < 12) setGreeting('สวัสดีตอนเช้า ☀️')
-    else if (hour < 17) setGreeting('สวัสดีตอนบ่าย 🌤️')
-    else if (hour < 20) setGreeting('สวัสดีตอนเย็น 🌅')
-    else setGreeting('สวัสดีตอนกลางคืน 🌙')
+    if (hour < 12) setGreeting('สวัสดีตอนเช้า')
+    else if (hour < 17) setGreeting('สวัสดีตอนบ่าย')
+    else if (hour < 20) setGreeting('สวัสดีตอนเย็น')
+    else setGreeting('สวัสดีตอนกลางคืน')
   }, [currentTime])
 
   useEffect(() => {
@@ -108,7 +108,7 @@ function DashboardContent() {
 
       const regularTables = (tables || []).filter((t) => {
         const name = String(t.table_number).toLowerCase()
-        return !name.includes('กลับบ้าน') && !name.includes('takeaway')
+        return !name.includes('กลับ���้าน') && !name.includes('takeaway')
       })
 
       const vacantTables = regularTables.filter((t) => t.current_status?.toLowerCase() === 'vacant').length
@@ -215,10 +215,15 @@ function DashboardContent() {
       setError(err?.message || 'ไม่สามารถโหลดข้อมูลได้')
     } finally {
       setLoading(false)
+      setIsRefreshing(false)
     }
   }
 
-  // ✅ Logout Function
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await loadDashboardData()
+  }
+
   const handleLogout = () => {
     if (confirm('ต้องการออกจากระบบ?')) {
       localStorage.removeItem('currentUser')
@@ -226,7 +231,6 @@ function DashboardContent() {
     }
   }
 
-  // ✅ ฟังก์ชันตรวจสอบสิทธิ์
   const canAccess = (page: string): boolean => {
     if (!currentUser) return false
     
@@ -256,17 +260,17 @@ function DashboardContent() {
   }
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
   }
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    return date.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })
   }
 
   const getTimeAgo = (dateString: string) => {
     const diff = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 1000)
-    if (diff < 60) return `${diff} วินาที`
-    if (diff < 3600) return `${Math.floor(diff / 60)} นาที`
+    if (diff < 60) return `${diff} วิ`
+    if (diff < 3600) return `${Math.floor(diff / 60)} น.`
     if (diff < 86400) return `${Math.floor(diff / 3600)} ชม.`
     return `${Math.floor(diff / 86400)} วัน`
   }
@@ -274,32 +278,32 @@ function DashboardContent() {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'pending':
-        return 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+        return 'bg-amber-500 text-white'
       case 'cooking':
-        return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+        return 'bg-blue-500 text-white'
       case 'served':
-        return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+        return 'bg-green-500 text-white'
       case 'completed':
-        return 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
+        return 'bg-emerald-500 text-white'
       case 'cancelled':
-        return 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+        return 'bg-red-500 text-white'
       default:
-        return 'bg-gradient-to-r from-slate-400 to-slate-500 text-white'
+        return 'bg-slate-400 text-white'
     }
   }
 
   const getStatusText = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'pending':
-        return '⏳ รอทำ'
+        return 'รอทำ'
       case 'cooking':
-        return '🔥 กำลังทำ'
+        return 'กำลังทำ'
       case 'served':
-        return '✅ เสิร์ฟแล้ว'
+        return 'เสิร์ฟแล้ว'
       case 'completed':
-        return '🎉 เสร็จสิ้น'
+        return 'เสร็จสิ้น'
       case 'cancelled':
-        return '❌ ยกเลิก'
+        return 'ยกเลิก'
       default:
         return status
     }
@@ -318,24 +322,32 @@ function DashboardContent() {
     }
   }
 
+  const getRoleEmoji = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return '👑'
+      case 'chef':
+        return '👨‍🍳'
+      case 'staff':
+        return '🧑‍💼'
+      default:
+        return '👤'
+    }
+  }
+
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 p-4">
         <div className="text-center">
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 animate-ping opacity-20"></div>
-            <div className="absolute inset-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 animate-pulse"></div>
+          <div className="relative w-20 h-20 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-20"></div>
+            <div className="absolute inset-2 rounded-full bg-emerald-500 animate-pulse"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <UtensilsCrossed className="w-10 h-10 text-white" />
+              <UtensilsCrossed className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">ร้านไก่ย่างพังโคน</h2>
-          <p className="text-emerald-200">กำลังโหลดข้อมูล...</p>
-          <div className="mt-4 flex justify-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-          </div>
+          <h2 className="text-xl font-bold text-white mb-1">ร้านไก่ย่างพังโคน</h2>
+          <p className="text-emerald-200 text-sm">กำลังโหลด...</p>
         </div>
       </main>
     )
@@ -344,17 +356,17 @@ function DashboardContent() {
   if (error) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-900 via-red-800 to-orange-900 p-4">
-        <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border border-white/20">
-          <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <XCircle className="w-10 h-10 text-white" />
+        <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center border border-white/20">
+          <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">เกิดข้อผิดพลาด</h2>
-          <p className="text-red-200 mb-6">{error}</p>
+          <h2 className="text-xl font-bold text-white mb-2">เกิดข้อผิดพลาด</h2>
+          <p className="text-red-200 text-sm mb-4">{error}</p>
           <button
             onClick={loadDashboardData}
-            className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105"
+            className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-all"
           >
-            ลองใหม่อีกครั้ง
+            ลองใหม่
           </button>
         </div>
       </main>
@@ -368,16 +380,14 @@ function DashboardContent() {
       label: 'แผนผังโต๊ะ',
       description: 'เปิดโต๊ะ / สั่งอาหาร',
       gradient: 'from-emerald-500 to-teal-600',
-      textColor: 'text-emerald-100',
       page: 'select-table',
     },
     {
       href: '/KDS',
       icon: ChefHat,
       label: 'หน้าจอครัว',
-      description: 'KDS / จัดการออเดอร์',
+      description: 'จัดการออเดอร์',
       gradient: 'from-blue-500 to-indigo-600',
-      textColor: 'text-blue-100',
       page: 'kds',
     },
     {
@@ -386,16 +396,14 @@ function DashboardContent() {
       label: 'การบัญชี',
       description: 'รายรับ / สถิติ',
       gradient: 'from-amber-500 to-orange-600',
-      textColor: 'text-amber-100',
       page: 'accounting',
     },
     {
       href: '/menu-management',
       icon: UtensilsCrossed,
       label: 'จัดการเมนู',
-      description: 'เพิ่ม / แก้ไข / ลบ',
+      description: 'เพิ่ม / แก้ไข',
       gradient: 'from-rose-500 to-pink-600',
-      textColor: 'text-rose-100',
       page: 'menu-management',
     },
     {
@@ -404,7 +412,6 @@ function DashboardContent() {
       label: 'วัตถุดิบ',
       description: 'จัดการสต็อก',
       gradient: 'from-teal-500 to-cyan-600',
-      textColor: 'text-teal-100',
       page: 'ingredients',
       badge: data?.lowStockCount,
       badgeColor: 'bg-red-500',
@@ -415,10 +422,7 @@ function DashboardContent() {
       label: 'จัดการผู้ใช้',
       description: 'สิทธิ์การเข้าถึง',
       gradient: 'from-indigo-500 to-purple-600',
-      textColor: 'text-indigo-100',
       page: 'users',
-      badge: data?.userCount,
-      badgeColor: 'bg-white/30',
     },
     {
       href: '/customers',
@@ -426,161 +430,131 @@ function DashboardContent() {
       label: 'ข้อมูลลูกค้า',
       description: 'ประวัติ / คะแนน',
       gradient: 'from-purple-500 to-pink-600',
-      textColor: 'text-purple-100',
       page: 'customers',
-      badge: data?.customerCount,
-      badgeColor: 'bg-white/30',
     },
   ]
 
   const visibleButtons = allQuickButtons.filter((btn) => canAccess(btn.page))
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
-      </div>
-
-      {/* Hero Header */}
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/90 via-emerald-500/90 to-teal-500/90 backdrop-blur-sm"></div>
-        <div className="relative max-w-6xl mx-auto px-4 py-6 md:py-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl"></div>
-                <div className="relative bg-white/10 backdrop-blur p-4 rounded-2xl border border-white/20">
-                  <UtensilsCrossed className="w-10 h-10 text-white" />
-                </div>
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-24">
+      {/* Header - Compact for Mobile */}
+      <div className="sticky top-0 z-30 bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg">
+        <div className="max-w-6xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Left: Logo & Info */}
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-xl">
+                <UtensilsCrossed className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <p className="text-emerald-100 text-sm font-medium mb-1">{greeting}</p>
-                <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">ร้านไก่ย่างพังโคน</h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <Calendar className="w-4 h-4 text-emerald-200" />
-                  <p className="text-emerald-100 text-sm">{formatDate(currentTime)}</p>
-                </div>
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-bold text-white leading-tight">ร้านไก่ย่างพังโคน</h1>
+                <p className="text-emerald-100 text-xs">{formatDate(currentTime)}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* User Info */}
+            {/* Center: Time - Mobile */}
+            <div className="sm:hidden text-center">
+              <p className="text-white font-bold text-lg font-mono">{formatTime(currentTime)}</p>
+              <p className="text-emerald-100 text-[10px]">{formatDate(currentTime)}</p>
+            </div>
+
+            {/* Right: User & Actions */}
+            <div className="flex items-center gap-2">
+              {/* Refresh Button */}
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="w-9 h-9 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+
+              {/* User Button */}
               {currentUser && (
-                <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-4 py-3 border border-white/20 flex items-center gap-3 flex-1 md:flex-none justify-between md:justify-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white font-bold text-sm">{currentUser.name}</p>
-                      <p className="text-emerald-200 text-xs">{getRoleLabel(currentUser.role)}</p>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 bg-white/20 rounded-xl px-2 py-1.5">
+                  <span className="text-lg">{getRoleEmoji(currentUser.role)}</span>
+                  <span className="text-white text-sm font-medium hidden sm:block max-w-[80px] truncate">
+                    {currentUser.name}
+                  </span>
                   <button
                     onClick={handleLogout}
-                    className="ml-2 w-10 h-10 bg-red-500/20 hover:bg-red-500/40 rounded-xl flex items-center justify-center transition-colors"
-                    title="ออกจากระบบ"
+                    className="w-7 h-7 bg-red-500/30 hover:bg-red-500/50 rounded-lg flex items-center justify-center transition-colors"
                   >
-                    <LogOut className="w-5 h-5 text-red-300" />
+                    <LogOut className="w-3.5 h-3.5 text-white" />
                   </button>
                 </div>
               )}
-
-              {/* Live Clock */}
-              <div className="hidden sm:block bg-white/10 backdrop-blur-xl rounded-2xl p-3 border border-white/20">
-                <div className="text-center">
-                  <div className="text-2xl md:text-3xl font-black text-white font-mono tracking-wider">
-                    {formatTime(currentTime)}
-                  </div>
-                  <div className="flex items-center justify-center gap-1 mt-1">
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                    <span className="text-green-300 text-xs font-medium">ออนไลน์</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="relative max-w-6xl mx-auto px-4 -mt-4 pb-12">
+      {/* Greeting - Mobile Friendly */}
+      <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-slate-400 text-sm">{greeting}</p>
+            <p className="text-white font-bold text-lg">{currentUser?.name || 'ผู้ใช้'}</p>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+            <span className="text-green-400 text-sm font-medium">{formatTime(currentTime)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 space-y-4">
+        
         {/* Sales Card - Owner Only */}
         {isOwner && data && (
-          <div className="relative overflow-hidden bg-gradient-to-br from-white to-slate-50 rounded-3xl shadow-2xl border border-slate-200/50 p-5 md:p-8 mb-6">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50"></div>
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full translate-y-1/2 -translate-x-1/2 opacity-50"></div>
-
-            <div className="relative">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl blur-lg opacity-50"></div>
-                    <div className="relative bg-gradient-to-br from-amber-400 to-orange-500 p-4 rounded-2xl shadow-lg">
-                      <CircleDollarSign className="w-8 h-8 text-white" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-sm font-medium flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-amber-500" />
-                      ยอดขายวันนี้
-                    </p>
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-4xl md:text-5xl font-black bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                        {formatCurrency(data.todaySales)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <span className="text-emerald-700 font-bold">{data.todayOrders} ออเดอร์</span>
-                  </div>
-                  {data.lowStockCount > 0 && (
-                    <Link
-                      href="/ingredients"
-                      className="flex items-center gap-2 bg-red-50 px-4 py-2 rounded-full border border-red-200 hover:bg-red-100 transition-colors"
-                    >
-                      <AlertTriangle className="w-5 h-5 text-red-500" />
-                      <span className="text-red-600 font-bold">{data.lowStockCount} วัตถุดิบใกล้หมด</span>
-                    </Link>
-                  )}
-                </div>
+          <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-5">
+            {/* Main Sales */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shrink-0">
+                <CircleDollarSign className="w-7 h-7 text-white" />
               </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-slate-500 text-xs flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-amber-500" />
+                  ยอดขายวันนี้
+                </p>
+                <p className="text-2xl sm:text-3xl font-black text-slate-800 truncate">
+                  {formatCurrency(data.todaySales)}
+                </p>
+              </div>
+              {data.lowStockCount > 0 && (
+                <Link
+                  href="/ingredients"
+                  className="shrink-0 flex items-center gap-1 bg-red-100 px-2.5 py-1.5 rounded-full"
+                >
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                  <span className="text-red-600 text-xs font-bold">{data.lowStockCount}</span>
+                </Link>
+              )}
+            </div>
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                  <ShoppingBag className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-2xl font-black">{data.todayOrders}</p>
-                  <p className="text-blue-100 text-xs font-medium">ออเดอร์</p>
-                </div>
-
-                <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                  <CheckCircle className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-2xl font-black">{data.vacantTables}</p>
-                  <p className="text-emerald-100 text-xs font-medium">โต๊ะว่าง</p>
-                </div>
-
-                <div className="group relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                  <Users className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-2xl font-black">{data.occupiedTables}</p>
-                  <p className="text-orange-100 text-xs font-medium">โต๊ะไม่ว่าง</p>
-                </div>
-
-                <div className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                  <UserCircle className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-2xl font-black">{data.customerCount}</p>
-                  <p className="text-purple-100 text-xs font-medium">สมาชิก</p>
-                </div>
+            {/* Stats Grid - 4 columns on mobile */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+              <div className="bg-blue-500 rounded-xl p-2.5 sm:p-3 text-center">
+                <ShoppingBag className="w-5 h-5 text-white/80 mx-auto mb-1" />
+                <p className="text-lg sm:text-xl font-black text-white">{data.todayOrders}</p>
+                <p className="text-blue-100 text-[10px] sm:text-xs">ออเดอร์</p>
+              </div>
+              <div className="bg-emerald-500 rounded-xl p-2.5 sm:p-3 text-center">
+                <CheckCircle className="w-5 h-5 text-white/80 mx-auto mb-1" />
+                <p className="text-lg sm:text-xl font-black text-white">{data.vacantTables}</p>
+                <p className="text-emerald-100 text-[10px] sm:text-xs">ว่าง</p>
+              </div>
+              <div className="bg-orange-500 rounded-xl p-2.5 sm:p-3 text-center">
+                <Users className="w-5 h-5 text-white/80 mx-auto mb-1" />
+                <p className="text-lg sm:text-xl font-black text-white">{data.occupiedTables}</p>
+                <p className="text-orange-100 text-[10px] sm:text-xs">ไม่ว่าง</p>
+              </div>
+              <div className="bg-purple-500 rounded-xl p-2.5 sm:p-3 text-center">
+                <UserCircle className="w-5 h-5 text-white/80 mx-auto mb-1" />
+                <p className="text-lg sm:text-xl font-black text-white">{data.customerCount}</p>
+                <p className="text-purple-100 text-[10px] sm:text-xs">สมาชิก</p>
               </div>
             </div>
           </div>
@@ -588,144 +562,125 @@ function DashboardContent() {
 
         {/* Simple Stats for non-owner */}
         {!isOwner && data && (
-          <div className="bg-white/10 backdrop-blur rounded-2xl p-6 mb-6 border border-white/20">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-              <div className="p-2">
-                <p className="text-3xl font-black text-white">{data.todayOrders}</p>
-                <p className="text-slate-300 text-sm">ออเดอร์วันนี้</p>
+          <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-2xl font-black text-white">{data.todayOrders}</p>
+                <p className="text-slate-400 text-xs">ออเดอร์</p>
               </div>
-              <div className="p-2 border-t sm:border-t-0 sm:border-l border-white/10">
-                <p className="text-3xl font-black text-emerald-400">{data.vacantTables}</p>
-                <p className="text-slate-300 text-sm">โต๊ะว่าง</p>
+              <div className="border-l border-white/10">
+                <p className="text-2xl font-black text-emerald-400">{data.vacantTables}</p>
+                <p className="text-slate-400 text-xs">โต๊ะว่าง</p>
               </div>
-              <div className="p-2 border-t sm:border-t-0 sm:border-l border-white/10">
-                <p className="text-3xl font-black text-orange-400">{data.occupiedTables}</p>
-                <p className="text-slate-300 text-sm">โต๊ะไม่ว่าง</p>
+              <div className="border-l border-white/10">
+                <p className="text-2xl font-black text-orange-400">{data.occupiedTables}</p>
+                <p className="text-slate-400 text-xs">ไม่ว่าง</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Content Grid - Owner Only */}
+        {/* Content Grid - Stack on Mobile */}
         {isOwner && data && (
-          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid lg:grid-cols-2 gap-4">
             {/* Top Menu */}
-            <div className="bg-white/95 backdrop-blur rounded-3xl shadow-xl border border-slate-200/50 overflow-hidden flex flex-col">
-              <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-4 md:p-5">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 p-2 rounded-xl">
-                    <Flame className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                      เมนูขายดี
-                      <Sparkles className="w-5 h-5 text-yellow-200" />
-                    </h2>
-                    <p className="text-orange-100 text-sm">อันดับยอดนิยมวันนี้</p>
-                  </div>
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-white" />
+                  <h2 className="text-base font-bold text-white">เมนูขายดี</h2>
+                  <Sparkles className="w-4 h-4 text-yellow-200" />
                 </div>
               </div>
 
-              <div className="p-4 md:p-5 flex-1">
+              <div className="p-3 sm:p-4">
                 {data.topMenuItems && data.topMenuItems.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {data.topMenuItems.map((item, index) => (
                       <div
                         key={item.name}
-                        className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 hover:border-orange-200 hover:shadow-md transition-all group"
+                        className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100"
                       >
                         <div
-                          className={`relative w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center font-black text-lg text-white shadow-lg shrink-0 ${
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm text-white shrink-0 ${
                             index === 0
-                              ? 'bg-gradient-to-br from-yellow-400 to-amber-500'
+                              ? 'bg-yellow-500'
                               : index === 1
-                              ? 'bg-gradient-to-br from-slate-400 to-slate-500'
+                              ? 'bg-slate-400'
                               : index === 2
-                              ? 'bg-gradient-to-br from-orange-400 to-orange-500'
-                              : 'bg-gradient-to-br from-slate-300 to-slate-400'
+                              ? 'bg-orange-400'
+                              : 'bg-slate-300'
                           }`}
                         >
-                          {index === 0 && <Award className="w-5 h-5 md:w-6 md:h-6" />}
-                          {index !== 0 && index + 1}
+                          {index === 0 ? <Award className="w-4 h-4" /> : index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm md:text-base text-slate-800 truncate group-hover:text-orange-600 transition-colors">
-                            {item.name}
-                          </p>
-                          <p className="text-xs md:text-sm text-slate-500">{formatCurrency(item.revenue)}</p>
+                          <p className="font-semibold text-sm text-slate-800 truncate">{item.name}</p>
+                          <p className="text-xs text-slate-500">{formatCurrency(item.revenue)}</p>
                         </div>
-                        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-1.5 md:px-4 md:py-2 rounded-xl shadow-md shrink-0">
-                          <span className="text-base md:text-lg font-black text-white">{item.quantity}</span>
+                        <div className="bg-emerald-500 px-2.5 py-1 rounded-lg shrink-0">
+                          <span className="text-sm font-bold text-white">{item.quantity}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <ShoppingBag className="w-10 h-10 text-slate-300" />
-                    </div>
-                    <p className="text-slate-500 font-medium">ยังไม่มีข้อมูลวันนี้</p>
+                  <div className="text-center py-8">
+                    <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-slate-500 text-sm">ยังไม่มีข้อมูล</p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Recent Orders */}
-            <div className="bg-white/95 backdrop-blur rounded-3xl shadow-xl border border-slate-200/50 overflow-hidden flex flex-col">
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 md:p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white/20 p-2 rounded-xl">
-                      <Clock className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg md:text-xl font-bold text-white">ออเดอร์ล่าสุด</h2>
-                      <p className="text-blue-100 text-sm">อัพเดทแบบเรียลไทม์</p>
-                    </div>
-                  </div>
-                  <Link
-                    href="/KDS"
-                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 md:px-4 md:py-2 rounded-xl transition-colors"
-                  >
-                    <span className="text-white text-xs md:text-sm font-medium">ดูทั้งหมด</span>
-                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                  </Link>
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-white" />
+                  <h2 className="text-base font-bold text-white">ออเดอร์ล��าสุด</h2>
                 </div>
+                <Link
+                  href="/KDS"
+                  className="flex items-center gap-1 bg-white/20 px-2.5 py-1 rounded-lg text-xs text-white font-medium"
+                >
+                  ดูทั้งหมด
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
               </div>
 
-              <div className="p-4 md:p-5 flex-1">
+              <div className="p-3 sm:p-4">
                 {data.recentOrders && data.recentOrders.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {data.recentOrders.map((order) => (
                       <div
                         key={order.order_id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all gap-2"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100"
                       >
-                        <div className="flex items-center gap-3 md:gap-4">
-                          <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-xl flex items-center justify-center text-xl md:text-2xl shrink-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-xl shrink-0">
                             {String(order.table_number).includes('กลับบ้าน') ? '🏠' : '🪑'}
-                          </div>
+                          </span>
                           <div className="min-w-0">
-                            <p className="font-mono font-bold text-sm md:text-base text-slate-800 truncate">{order.order_id}</p>
-                            <div className="flex items-center gap-2 text-xs md:text-sm text-slate-500">
-                              <Timer className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                            <p className="font-mono font-semibold text-sm text-slate-800 truncate">
+                              {order.order_id.slice(-8)}
+                            </p>
+                            <div className="flex items-center gap-1 text-xs text-slate-500">
+                              <Timer className="w-3 h-3" />
                               <span>{getTimeAgo(order.created_at)}</span>
                             </div>
                           </div>
                         </div>
-                        <span className={`self-start sm:self-center px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-xs font-bold shadow-sm ${getStatusColor(order.status)}`}>
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 ${getStatusColor(order.status)}`}>
                           {getStatusText(order.status)}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Clock className="w-10 h-10 text-slate-300" />
-                    </div>
-                    <p className="text-slate-500 font-medium">ยังไม่มีออเดอร์วันนี้</p>
+                  <div className="text-center py-8">
+                    <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-slate-500 text-sm">ยังไม่มีออเดอร์</p>
                   </div>
                 )}
               </div>
@@ -733,33 +688,29 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className={`grid grid-cols-2 ${isOwner ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
+        {/* Quick Actions - Responsive Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {visibleButtons.map((btn) => {
             const IconComponent = btn.icon
             return (
               <Link
                 key={btn.href}
                 href={btn.href}
-                className={`group relative overflow-hidden bg-gradient-to-br ${btn.gradient} rounded-3xl p-4 md:p-5 shadow-xl hover:shadow-2xl transition-all hover:scale-[1.02]`}
+                className={`group relative overflow-hidden bg-gradient-to-br ${btn.gradient} rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all active:scale-[0.98]`}
               >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                {/* Badge */}
                 {btn.badge !== undefined && btn.badge > 0 && (
-                  <div
-                    className={`absolute top-2 right-2 ${btn.badgeColor} text-white text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full ${
-                      btn.badgeColor === 'bg-red-500' ? 'animate-pulse' : ''
-                    }`}
-                  >
+                  <div className={`absolute top-2 right-2 ${btn.badgeColor} text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse`}>
                     {btn.badge}
                   </div>
                 )}
-                <div className="relative">
-                  <div className="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <IconComponent className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="text-sm font-black text-white mb-0.5">{btn.label}</h3>
-                  <p className={`${btn.textColor} text-xs`}>{btn.description}</p>
+                
+                {/* Content */}
+                <div className="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <IconComponent className="w-5 h-5 text-white" />
                 </div>
+                <h3 className="text-sm font-bold text-white mb-0.5 truncate">{btn.label}</h3>
+                <p className="text-white/70 text-[10px] sm:text-xs truncate">{btn.description}</p>
               </Link>
             )
           })}
