@@ -23,7 +23,7 @@ interface TableQRModalProps {
 
 export default function TableQRModal({ table, onClose }: TableQRModalProps) {
   const [copied, setCopied] = useState(false)
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://my-restaurant-app-phi.vercel.app'
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://phang-khon-chicken.vercel.app'
   const orderUrl = `${baseUrl}/scan_qrcode?t=${table.id}`
 
   const handleCopyUrl = async () => {

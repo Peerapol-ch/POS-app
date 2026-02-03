@@ -38,7 +38,7 @@ export default function OrderSuccessModal({ result, onClose }: OrderSuccessModal
 
   const { orderId, tableNumber, tableId, isTakeaway, sessionToken } = result
   
-  const baseUrl = 'https://my-restaurant-app-phi.vercel.app'
+  const baseUrl = 'https://phang-khon-chicken.vercel.app'
   
   const now = new Date()
   const formatDate = now.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })

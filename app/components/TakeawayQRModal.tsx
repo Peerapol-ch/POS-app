@@ -25,7 +25,7 @@ interface TakeawayQRModalProps {
 
 export default function TakeawayQRModal({ order, onClose }: TakeawayQRModalProps) {
   const [copied, setCopied] = useState(false)
-  const baseUrl = 'https://my-restaurant-app-phi.vercel.app'
+  const baseUrl = 'https://phang-khon-chicken.vercel.app'
   const targetId = order.table_id || 9
   const orderUrl = `${baseUrl}/scan_qrcode?t=${targetId}`
 

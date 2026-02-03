@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/app/context/AuthContext'
 import {
   UtensilsCrossed,
   LayoutGrid,
@@ -20,12 +20,52 @@ import {
 } from 'lucide-react'
 
 interface QuickMenuProps {
-  currentPage?:  'home' | 'select-table' | 'kds' | 'accounting' | 'menu-management' | 'ingredients' | 'users' | 'customers'
+  currentPage?: 'home' | 'select-table' | 'kds' | 'accounting' | 'menu-management' | 'ingredients' | 'users' | 'customers'
+}
+
+interface CurrentUser {
+  id: number
+  userid: string
+  role: 'owner' | 'chef' | 'staff'
+  name: string
 }
 
 export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
+  const router = useRouter()
   const [showMenu, setShowMenu] = useState(false)
-  const { user, logout, canAccess } = useAuth()
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+
+  // ✅ โหลด User จาก LocalStorage
+  useEffect(() => {
+    const userStr = localStorage.getItem('currentUser')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        setCurrentUser(user)
+      } catch (err) {
+        console.error('Error parsing user:', err)
+      }
+    }
+  }, [])
+
+  // ✅ ฟังก์ชันตรวจสอบสิทธิ์
+  const canAccess = (page: string): boolean => {
+    if (!currentUser) return false
+
+    const pagePermissions: { [key: string]: string[] } = {
+      home: ['owner', 'chef', 'staff'],
+      'select-table': ['owner', 'chef', 'staff'],
+      kds: ['owner', 'chef', 'staff'],
+      accounting: ['owner'],
+      'menu-management': ['owner'],
+      ingredients: ['owner'],
+      users: ['owner'],
+      customers: ['owner'],
+    }
+
+    const allowedRoles = pagePermissions[page] || []
+    return allowedRoles.includes(currentUser.role)
+  }
 
   const allMenuItems = [
     {
@@ -33,18 +73,18 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
       icon: Home,
       label: 'หน้าหลัก',
       description: 'Dashboard & สรุปยอด',
-      color:  'from-violet-500 to-purple-600',
+      color: 'from-violet-500 to-purple-600',
       iconBg: 'bg-violet-100',
       iconColor: 'text-violet-600',
       page: 'home',
     },
     {
-      href:  '/select-table',
+      href: '/select-table',
       icon: LayoutGrid,
-      label:  'แผนผังโต๊ะ',
-      description:  'เปิดโต๊ะ & สั่งอาหาร',
+      label: 'แผนผังโต๊ะ',
+      description: 'เปิดโต๊ะ & สั่งอาหาร',
       color: 'from-emerald-500 to-teal-600',
-      iconBg:  'bg-emerald-100',
+      iconBg: 'bg-emerald-100',
       iconColor: 'text-emerald-600',
       page: 'select-table',
     },
@@ -54,29 +94,29 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
       label: 'หน้าจอครัว',
       description: 'จัดการออเดอร์ & เมนู',
       color: 'from-blue-500 to-cyan-600',
-      iconBg:  'bg-blue-100',
+      iconBg: 'bg-blue-100',
       iconColor: 'text-blue-600',
-      page:  'kds',
+      page: 'kds',
     },
     {
-      href:  '/accounting',
+      href: '/accounting',
       icon: BarChart3,
       label: 'การบัญชี',
-      description:  'รายรับ & สถิติการขาย',
+      description: 'รายรับ & สถิติการขาย',
       color: 'from-amber-500 to-orange-600',
-      iconBg:  'bg-amber-100',
+      iconBg: 'bg-amber-100',
       iconColor: 'text-amber-600',
-      page:  'accounting',
+      page: 'accounting',
     },
     {
       href: '/menu-management',
       icon: UtensilsCrossed,
-      label:  'จัดการเมนู',
-      description:  'เพิ่ม แก้ไข ลบเมนูอาหาร',
+      label: 'จัดการเมนู',
+      description: 'เพิ่ม แก้ไข ลบเมนูอาหาร',
       color: 'from-rose-500 to-pink-600',
-      iconBg:  'bg-rose-100',
+      iconBg: 'bg-rose-100',
       iconColor: 'text-rose-600',
-      page:  'menu-management',
+      page: 'menu-management',
     },
     {
       href: '/ingredients',
@@ -89,38 +129,54 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
       page: 'ingredients',
     },
     {
-      href:  '/users',
+      href: '/users',
       icon: Shield,
-      label:  'จัดการผู้ใช้',
-      description:  'สิทธิ์การเข้าถึงระบบ',
+      label: 'จัดการผู้ใช้',
+      description: 'สิทธิ์การเข้าถึงระบบ',
       color: 'from-indigo-500 to-purple-600',
       iconBg: 'bg-indigo-100',
       iconColor: 'text-indigo-600',
       page: 'users',
     },
     {
-      href:  '/customers',
+      href: '/customers',
       icon: Users,
       label: 'ข้อมูลลูกค้า',
       description: 'ประวัติ & คะแนนสะสม',
-      color:  'from-purple-500 to-pink-600',
-      iconBg:  'bg-purple-100',
+      color: 'from-purple-500 to-pink-600',
+      iconBg: 'bg-purple-100',
       iconColor: 'text-purple-600',
-      page:  'customers',
+      page: 'customers',
     },
   ]
 
-  // กรองเฉพาะเมนูที่ผู้ใช้มีสิทธิ์เข้าถึง และไม่ใช่หน้าปัจจุบัน
+  // ✅ กรองเฉพาะเมนูที่ผู้ใช้มีสิทธิ์เข้าถึง และไม่ใช่หน้าปัจจุบัน
   const visibleItems = allMenuItems.filter(
     (item) => item.page !== currentPage && canAccess(item.page)
   )
 
   const handleLogout = () => {
-    logout()
-    window.location.href = '/login'
+    if (confirm('ต้องการออกจากระบบ?')) {
+      localStorage.removeItem('currentUser')
+      router.push('/login')
+    }
   }
 
-  if (!user) return null
+  // ✅ getRoleLabel
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return 'เจ้าของร้าน'
+      case 'chef':
+        return 'พ่อครัว'
+      case 'staff':
+        return 'พนักงาน'
+      default:
+        return 'ผู้ใช้'
+    }
+  }
+
+  if (!currentUser) return null
 
   return (
     <>
@@ -143,16 +199,8 @@ export default function QuickMenu({ currentPage = 'home' }: QuickMenuProps) {
                       <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-white font-bold truncate">{user.Name}</p>
-                      <p className="text-gray-400 text-xs md:text-sm">
-                        {user.role === 'owner'
-                          ? 'เจ้าของร้าน'
-                          : user.role === 'chef'
-                          ?  'พ่อครัว'
-                          : user.role === 'staff'
-                          ?  'พนักงาน'
-                          :  'ผู้ใช้'}
-                      </p>
+                      <p className="text-white font-bold truncate">{currentUser.name}</p>
+                      <p className="text-gray-400 text-xs md:text-sm">{getRoleLabel(currentUser.role)}</p>
                     </div>
                   </div>
                 </div>

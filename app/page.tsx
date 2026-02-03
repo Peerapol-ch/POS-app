@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/utils/supabaseClient'
 import AuthGuard from '@/app/components/AuthGuard'
-import { useAuth } from '@/app/context/AuthContext'
 import QuickMenu from '@/app/components/QuickMenu'
 import {
   UtensilsCrossed,
@@ -40,19 +40,43 @@ interface DashboardData {
   vacantTables: number
   occupiedTables: number
   topMenuItems: { name: string; quantity: number; revenue: number }[]
-  recentOrders: { order_id: string; table_number: string; total:  number; status: string; created_at: string }[]
+  recentOrders: { order_id: string; table_number: string; total: number; status: string; created_at: string }[]
   lowStockCount: number
   userCount: number
   customerCount: number
 }
 
+interface CurrentUser {
+  id: number
+  userid: string
+  role: 'owner' | 'chef' | 'staff'
+  name: string
+}
+
 function DashboardContent() {
-  const { user, logout, canAccess, isOwner } = useAuth()
+  const router = useRouter()
+  
+  // ✅ ใช้ State แทน AuthContext
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [greeting, setGreeting] = useState('')
+
+  // ✅ โหลด User จาก LocalStorage
+  useEffect(() => {
+    const userStr = localStorage.getItem('currentUser')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        setCurrentUser(user)
+      } catch (err) {
+        console.error('Error parsing user:', err)
+        router.push('/login')
+      }
+    }
+  }, [router])
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -110,7 +134,7 @@ function DashboardContent() {
 
       if (itemsError) console.error('Items error:', itemsError)
 
-      const menuStats:  { [key: string]: { name: string; quantity:  number; revenue: number } } = {}
+      const menuStats: { [key: string]: { name: string; quantity: number; revenue: number } } = {}
 
       ;(orderItems || []).forEach((item) => {
         const menuName = item.menu_items?.name || `Menu #${item.menu_item_id}`
@@ -131,8 +155,8 @@ function DashboardContent() {
         order_id: order.order_id,
         table_number: order.tables?.table_number || 'กลับบ้าน',
         total: order.total_amount || 0,
-        status:  order.status,
-        created_at:  order.created_at,
+        status: order.status,
+        created_at: order.created_at,
       }))
 
       let lowStockCount = 0
@@ -150,7 +174,7 @@ function DashboardContent() {
 
       let userCount = 0
       try {
-        const { data:  users, error: usersError } = await supabase.from('user').select('id')
+        const { data: users, error: usersError } = await supabase.from('user').select('id')
 
         if (!usersError && users) {
           userCount = users.length
@@ -159,7 +183,6 @@ function DashboardContent() {
         console.error('Error loading users:', err)
       }
 
-      // ✅ โหลดจำนวนลูกค้า
       let customerCount = 0
       try {
         const { data: customers, error: customersError } = await supabase
@@ -177,7 +200,7 @@ function DashboardContent() {
       setData({
         todaySales,
         todayOrders,
-        totalTables:  regularTables.length,
+        totalTables: regularTables.length,
         vacantTables,
         occupiedTables,
         topMenuItems,
@@ -187,7 +210,7 @@ function DashboardContent() {
         customerCount,
       })
       setError(null)
-    } catch (err:  any) {
+    } catch (err: any) {
       console.error('Dashboard error:', err)
       setError(err?.message || 'ไม่สามารถโหลดข้อมูลได้')
     } finally {
@@ -195,12 +218,36 @@ function DashboardContent() {
     }
   }
 
+  // ✅ Logout Function
   const handleLogout = () => {
-    logout()
-    window.location.href = '/login'
+    if (confirm('ต้องการออกจากระบบ?')) {
+      localStorage.removeItem('currentUser')
+      router.push('/login')
+    }
   }
 
-  const formatCurrency = (amount:  number) => {
+  // ✅ ฟังก์ชันตรวจสอบสิทธิ์
+  const canAccess = (page: string): boolean => {
+    if (!currentUser) return false
+    
+    const pagePermissions: { [key: string]: string[] } = {
+      'home': ['owner', 'chef', 'staff'],
+      'select-table': ['owner', 'chef', 'staff'],
+      'kds': ['owner', 'chef', 'staff'],
+      'accounting': ['owner'],
+      'menu-management': ['owner'],
+      'ingredients': ['owner'],
+      'users': ['owner'],
+      'customers': ['owner'],
+    }
+
+    const allowedRoles = pagePermissions[page] || []
+    return allowedRoles.includes(currentUser.role)
+  }
+
+  const isOwner = currentUser?.role === 'owner'
+
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
       style: 'currency',
       currency: 'THB',
@@ -212,7 +259,7 @@ function DashboardContent() {
     return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   }
 
-  const formatDate = (date:  Date) => {
+  const formatDate = (date: Date) => {
     return date.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   }
 
@@ -220,13 +267,13 @@ function DashboardContent() {
     const diff = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 1000)
     if (diff < 60) return `${diff} วินาที`
     if (diff < 3600) return `${Math.floor(diff / 60)} นาที`
-    if (diff < 86400) return `${Math.floor(diff / 3600)} ชม. `
+    if (diff < 86400) return `${Math.floor(diff / 3600)} ชม.`
     return `${Math.floor(diff / 86400)} วัน`
   }
 
-  const getStatusColor = (status:  string) => {
+  const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'pending': 
+      case 'pending':
         return 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
       case 'cooking':
         return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
@@ -251,9 +298,9 @@ function DashboardContent() {
         return '✅ เสิร์ฟแล้ว'
       case 'completed':
         return '🎉 เสร็จสิ้น'
-      case 'cancelled': 
+      case 'cancelled':
         return '❌ ยกเลิก'
-      default: 
+      default:
         return status
     }
   }
@@ -283,7 +330,7 @@ function DashboardContent() {
             </div>
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">ร้านไก่ย่างพังโคน</h2>
-          <p className="text-emerald-200">กำลังโหลดข้อมูล... </p>
+          <p className="text-emerald-200">กำลังโหลดข้อมูล...</p>
           <div className="mt-4 flex justify-center gap-1">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }}></div>
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -314,7 +361,6 @@ function DashboardContent() {
     )
   }
 
-  // กำหนดปุ่มทั้งหมด
   const allQuickButtons = [
     {
       href: '/select-table',
@@ -336,48 +382,47 @@ function DashboardContent() {
     },
     {
       href: '/accounting',
-      icon:  BarChart3,
+      icon: BarChart3,
       label: 'การบัญชี',
-      description:  'รายรับ / สถิติ',
+      description: 'รายรับ / สถิติ',
       gradient: 'from-amber-500 to-orange-600',
       textColor: 'text-amber-100',
       page: 'accounting',
     },
     {
-      href:  '/menu-management',
-      icon:  UtensilsCrossed,
-      label:  'จัดการเมนู',
-      description:  'เพิ่ม / แก้ไข / ลบ',
+      href: '/menu-management',
+      icon: UtensilsCrossed,
+      label: 'จัดการเมนู',
+      description: 'เพิ่ม / แก้ไข / ลบ',
       gradient: 'from-rose-500 to-pink-600',
       textColor: 'text-rose-100',
-      page:  'menu-management',
+      page: 'menu-management',
     },
     {
       href: '/ingredients',
       icon: Package,
-      label:  'วัตถุดิบ',
+      label: 'วัตถุดิบ',
       description: 'จัดการสต็อก',
       gradient: 'from-teal-500 to-cyan-600',
-      textColor:  'text-teal-100',
+      textColor: 'text-teal-100',
       page: 'ingredients',
       badge: data?.lowStockCount,
       badgeColor: 'bg-red-500',
     },
     {
       href: '/users',
-      icon:  Shield,
-      label:  'จัดการผู้ใช้',
-      description:  'สิทธิ์การเข้าถึง',
+      icon: Shield,
+      label: 'จัดการผู้ใช้',
+      description: 'สิทธิ์การเข้าถึง',
       gradient: 'from-indigo-500 to-purple-600',
-      textColor:  'text-indigo-100',
+      textColor: 'text-indigo-100',
       page: 'users',
       badge: data?.userCount,
       badgeColor: 'bg-white/30',
     },
-    // ✅ เพิ่มปุ่มข้อมูลลูกค้า
     {
       href: '/customers',
-      icon:  UserCircle,
+      icon: UserCircle,
       label: 'ข้อมูลลูกค้า',
       description: 'ประวัติ / คะแนน',
       gradient: 'from-purple-500 to-pink-600',
@@ -388,11 +433,7 @@ function DashboardContent() {
     },
   ]
 
-  // กรองเฉพาะปุ่มที่ผู้ใช้มีสิทธิ์
   const visibleButtons = allQuickButtons.filter((btn) => canAccess(btn.page))
-
-  // คำนวณจำนวน columns
-  const gridCols = Math.min(visibleButtons.length, 4)
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -427,15 +468,15 @@ function DashboardContent() {
 
             <div className="flex items-center gap-3">
               {/* User Info */}
-              {user && (
+              {currentUser && (
                 <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-4 py-3 border border-white/20 flex items-center gap-3 flex-1 md:flex-none justify-between md:justify-start">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
+                      <User className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <p className="text-white font-bold text-sm">{user.Name}</p>
-                        <p className="text-emerald-200 text-xs">{getRoleLabel(user.role)}</p>
+                      <p className="text-white font-bold text-sm">{currentUser.name}</p>
+                      <p className="text-emerald-200 text-xs">{getRoleLabel(currentUser.role)}</p>
                     </div>
                   </div>
                   <button
@@ -448,7 +489,7 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Live Clock - Hidden on small mobile to save space */}
+              {/* Live Clock */}
               <div className="hidden sm:block bg-white/10 backdrop-blur-xl rounded-2xl p-3 border border-white/20">
                 <div className="text-center">
                   <div className="text-2xl md:text-3xl font-black text-white font-mono tracking-wider">
@@ -466,8 +507,8 @@ function DashboardContent() {
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4 -mt-4 pb-12">
-        {/* Sales Hero Card - แสดงเฉพาะ owner */}
-        {isOwner && (
+        {/* Sales Card - Owner Only */}
+        {isOwner && data && (
           <div className="relative overflow-hidden bg-gradient-to-br from-white to-slate-50 rounded-3xl shadow-2xl border border-slate-200/50 p-5 md:p-8 mb-6">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50"></div>
             <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full translate-y-1/2 -translate-x-1/2 opacity-50"></div>
@@ -488,7 +529,7 @@ function DashboardContent() {
                     </p>
                     <div className="flex items-baseline gap-3">
                       <span className="text-4xl md:text-5xl font-black bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                        {formatCurrency(data?.todaySales || 0)}
+                        {formatCurrency(data.todaySales)}
                       </span>
                     </div>
                   </div>
@@ -497,47 +538,47 @@ function DashboardContent() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200">
                     <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <span className="text-emerald-700 font-bold">{data?.todayOrders || 0} ออเดอร์</span>
+                    <span className="text-emerald-700 font-bold">{data.todayOrders} ออเดอร์</span>
                   </div>
-                  {(data?.lowStockCount || 0) > 0 && (
+                  {data.lowStockCount > 0 && (
                     <Link
                       href="/ingredients"
                       className="flex items-center gap-2 bg-red-50 px-4 py-2 rounded-full border border-red-200 hover:bg-red-100 transition-colors"
                     >
                       <AlertTriangle className="w-5 h-5 text-red-500" />
-                      <span className="text-red-600 font-bold">{data?.lowStockCount} วัตถุดิบใกล้หมด</span>
+                      <span className="text-red-600 font-bold">{data.lowStockCount} วัตถุดิบใกล้หมด</span>
                     </Link>
                   )}
                 </div>
               </div>
 
-              {/* Stats Grid - Responsive grid-cols-2 for mobile */}
+              {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                   <ShoppingBag className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-2xl font-black">{data?.todayOrders || 0}</p>
+                  <p className="text-2xl font-black">{data.todayOrders}</p>
                   <p className="text-blue-100 text-xs font-medium">ออเดอร์</p>
                 </div>
 
                 <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                   <CheckCircle className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-2xl font-black">{data?.vacantTables || 0}</p>
+                  <p className="text-2xl font-black">{data.vacantTables}</p>
                   <p className="text-emerald-100 text-xs font-medium">โต๊ะว่าง</p>
                 </div>
 
                 <div className="group relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                   <Users className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-2xl font-black">{data?.occupiedTables || 0}</p>
+                  <p className="text-2xl font-black">{data.occupiedTables}</p>
                   <p className="text-orange-100 text-xs font-medium">โต๊ะไม่ว่าง</p>
                 </div>
 
                 <div className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                   <UserCircle className="w-6 h-6 mb-2 opacity-80" />
-                  <p className="text-2xl font-black">{data?.customerCount || 0}</p>
+                  <p className="text-2xl font-black">{data.customerCount}</p>
                   <p className="text-purple-100 text-xs font-medium">สมาชิก</p>
                 </div>
               </div>
@@ -546,27 +587,27 @@ function DashboardContent() {
         )}
 
         {/* Simple Stats for non-owner */}
-        {!isOwner && (
+        {!isOwner && data && (
           <div className="bg-white/10 backdrop-blur rounded-2xl p-6 mb-6 border border-white/20">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
               <div className="p-2">
-                <p className="text-3xl font-black text-white">{data?.todayOrders || 0}</p>
+                <p className="text-3xl font-black text-white">{data.todayOrders}</p>
                 <p className="text-slate-300 text-sm">ออเดอร์วันนี้</p>
               </div>
               <div className="p-2 border-t sm:border-t-0 sm:border-l border-white/10">
-                <p className="text-3xl font-black text-emerald-400">{data?.vacantTables || 0}</p>
+                <p className="text-3xl font-black text-emerald-400">{data.vacantTables}</p>
                 <p className="text-slate-300 text-sm">โต๊ะว่าง</p>
               </div>
               <div className="p-2 border-t sm:border-t-0 sm:border-l border-white/10">
-                <p className="text-3xl font-black text-orange-400">{data?. occupiedTables || 0}</p>
+                <p className="text-3xl font-black text-orange-400">{data.occupiedTables}</p>
                 <p className="text-slate-300 text-sm">โต๊ะไม่ว่าง</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Content Grid - แสดงเฉพาะ owner */}
-        {isOwner && (
+        {/* Content Grid - Owner Only */}
+        {isOwner && data && (
           <div className="grid lg:grid-cols-2 gap-6 mb-6">
             {/* Top Menu */}
             <div className="bg-white/95 backdrop-blur rounded-3xl shadow-xl border border-slate-200/50 overflow-hidden flex flex-col">
@@ -586,7 +627,7 @@ function DashboardContent() {
               </div>
 
               <div className="p-4 md:p-5 flex-1">
-                {data?.topMenuItems && data.topMenuItems.length > 0 ?  (
+                {data.topMenuItems && data.topMenuItems.length > 0 ? (
                   <div className="space-y-3">
                     {data.topMenuItems.map((item, index) => (
                       <div
@@ -654,7 +695,7 @@ function DashboardContent() {
               </div>
 
               <div className="p-4 md:p-5 flex-1">
-                {data?.recentOrders && data.recentOrders.length > 0 ? (
+                {data.recentOrders && data.recentOrders.length > 0 ? (
                   <div className="space-y-3">
                     {data.recentOrders.map((order) => (
                       <div
@@ -692,7 +733,7 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Quick Actions - แสดงตามสิทธิ์ */}
+        {/* Quick Actions */}
         <div className={`grid grid-cols-2 ${isOwner ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
           {visibleButtons.map((btn) => {
             const IconComponent = btn.icon
