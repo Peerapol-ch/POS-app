@@ -602,7 +602,7 @@ export default function AccountingPage() {
                   {isTakeaway(selectedOrder) ? <Home className="w-6 h-6 text-violet-600" /> :  <Utensils className="w-6 h-6 text-sky-600" />}
                 </div>
                 <div>
-                  <p className="text-stone-500 text-sm">{isTakeaway(selectedOrder) ? 'สั่งกลับบ้าน' :  `โต๊ะ ${selectedOrder.table_number}`}</p>
+                  <p className="text-stone-500 text-sm">{isTakeaway(selectedOrder) ? 'สั่งกลับบ้าน' :  `${selectedOrder.table_number}`}</p>
                   <p className="font-bold text-stone-800">{selectedOrder. order_id}</p>
                 </div>
               </div>
