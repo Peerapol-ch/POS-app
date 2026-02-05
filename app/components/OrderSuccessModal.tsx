@@ -51,7 +51,7 @@ export default function OrderSuccessModal({ result, onClose }: OrderSuccessModal
 
   const { orderId, tableNumber, tableId, isTakeaway, sessionToken } = result
   
-  const baseUrl = 'https://phang-khon-chicken.vercel.app'
+  const baseUrl = 'https://my-restaurant-app-phi.vercel.app'
   const queueNumber = orderId.slice(-4)
   
   const now = new Date()

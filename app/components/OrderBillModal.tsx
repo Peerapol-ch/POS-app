@@ -42,7 +42,7 @@ export default function OrderBillModal({
   
   const now = createdAt ? new Date(createdAt) : new Date()
   
-  const baseUrl = 'https://phang-khon-chicken.vercel.app'
+  const baseUrl = 'https://my-restaurant-app-phi.vercel.app'
   const queueNumber = orderId.slice(-4)
   
   // ✅ ป้องกัน scroll
