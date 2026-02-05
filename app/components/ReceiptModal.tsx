@@ -238,7 +238,7 @@ ${data.items.map(item => `• ${item.menu_items?.name} x${item.quantity} = ฿${
                       <p className="font-semibold text-slate-800 text-sm truncate">
                         {item.menu_items?.name}
                       </p>
-                      <p className="text-xs text-slate-400">@{item.price} บ���ท</p>
+                      <p className="text-xs text-slate-400">@{item.price} บาท</p>
                     </div>
                     <div className="text-center px-2 shrink-0">
                       <span className="text-sm text-slate-600">x{item.quantity}</span>

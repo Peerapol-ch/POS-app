@@ -201,7 +201,7 @@ ${qrUrl}
               <div class="info-row"><span>เวลา</span><span>${formatTime(now)}</span></div>
             </div>
             <div class="order-type">
-              ${isTakeaway ? '🏠 สั่งกลับบ��าน' : `🪑 ${tableNumber || tableId}`}
+              ${isTakeaway ? '🏠 สั่งกลับบ้าน' : `🪑 ${tableNumber || tableId}`}
             </div>
             <div class="footer">สแกน QR Code เพื่อสั่งอาหาร<br/>ขอบคุณที่ใช้บริการ ❤️</div>
           </div>
@@ -252,7 +252,7 @@ ${qrUrl}
           >
             {/* Shop Header */}
             <div className="text-center p-4 border-b-2 border-dashed border-slate-200">
-              <div className="text-lg font-black text-slate-800">🍗 ไก��ย่างพังโคน</div>
+              <div className="text-lg font-black text-slate-800">🍗 ไก่ย่างพังโคน</div>
               <div className={`text-3xl font-black mt-2 tracking-wider ${
                 isTakeaway ? 'text-purple-600' : 'text-emerald-600'
               }`}>

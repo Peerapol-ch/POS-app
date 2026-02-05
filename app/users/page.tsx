@@ -386,7 +386,7 @@ export default function UsersPage() {
       alert('✅ ลบผู้ใช้สำเร็จ')
     } catch (err: any) {
       console.error('Error deleting user:', err)
-      alert('❌ เกิดข้อผิ��พลาด: ' + err?.message)
+      alert('❌ เกิดข้อผิดพลาด: ' + err?.message)
     } finally {
       setSaving(false)
     }

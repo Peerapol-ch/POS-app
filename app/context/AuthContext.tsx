@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { success: true }
     } catch (err:  any) {
-      return { success: false, error: err?. message || 'เกิดข��อผิดพลาด' }
+      return { success: false, error: err?. message || 'เกิดข้อผิดพลาด' }
     }
   }
 
