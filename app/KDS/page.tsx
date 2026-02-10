@@ -535,8 +535,7 @@ export default function KitchenDisplay() {
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-stone-300">
             <Bell className="w-24 h-24 mb-4 opacity-20" />
-            <h3 className="text-2xl font-bold text-stone-400">ว่างงานจ้า!</h3>
-            <p className="text-stone-400">ยังไม่มีออเดอร์เข้ามาในครัว</p>
+            <h3 className="text-2xl font-bold text-stone-400">ยังไม่มีออเดอร์เข้ามาในครัว</h3>
           </div>
         )}
       </div>
