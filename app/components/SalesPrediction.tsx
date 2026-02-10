@@ -277,11 +277,25 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
     if (bestSlot) {
       insights.push(`ช่วง${bestSlot.name} (${bestSlot.hours}) ขายดีที่สุด ${bestSlot.percentage.toFixed(0)}%`)
     }
+
+    // --- ส่วนที่แก้ไข Logic เพื่อป้องกัน Infinity% ---
     if (weekendAvg > weekdayAvg * 1.1) {
-      insights.push(`วันหยุดขายดีกว่าวันธรรมดา ${(((weekendAvg / weekdayAvg) - 1) * 100).toFixed(0)}%`)
+      // กรณีวันหยุดขายดีกว่า
+      if (weekdayAvg > 0) {
+         insights.push(`วันหยุดขายดีกว่าวันธรรมดา ${(((weekendAvg / weekdayAvg) - 1) * 100).toFixed(0)}%`)
+      } else {
+         insights.push(`วันหยุดขายดีกว่า (ข้อมูลวันธรรมดาไม่เพียงพอ)`)
+      }
     } else if (weekdayAvg > weekendAvg * 1.1) {
-      insights.push(`วันธรรมดาขายดีกว่าวันหยุด ${(((weekdayAvg / weekendAvg) - 1) * 100).toFixed(0)}%`)
+      // กรณีวันธรรมดาขายดีกว่า
+      if (weekendAvg > 0) {
+         insights.push(`วันธรรมดาขายดีกว่าวันหยุด ${(((weekdayAvg / weekendAvg) - 1) * 100).toFixed(0)}%`)
+      } else {
+         insights.push(`วันธรรมดาขายดีกว่าวันหยุด (ข้อมูลวันหยุดไม่เพียงพอ)`)
+      }
     }
+    // ---------------------------------------------
+
     if (avgOrderValue > 0) {
       insights.push(`ยอดเฉลี่ยต่อบิล ฿${formatCurrency(avgOrderValue)}`)
     }
@@ -311,7 +325,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
         - Tablet/Desktop: inset-4 / inset-8 (popup style)
       */}
       <div className="absolute inset-0 sm:inset-4 lg:inset-8 bg-stone-50 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        
+         
         {/* Header */}
         <div className="bg-white border-b border-stone-200 p-4 lg:p-5 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -354,7 +368,6 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
-                  {/* Show Label on mobile if active, or just icon? Keeping text hidden on very small screens for cleanliness */}
                   <span className="sm:hidden text-xs">{tab.label}</span> 
                 </button>
               )
@@ -375,7 +388,6 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
             <>
               {/* Overview Tab */}
               {activeTab === 'overview' && (
-                // Added md:grid-cols-2 for tablets
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                   {/* Next Best Day Card */}
                   <div className="md:col-span-2 lg:col-span-1">
@@ -386,7 +398,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                         </div>
                         <span className="font-semibold text-stone-800">วันขายดีถัดไป</span>
                       </div>
-                      
+                       
                       <div className="mb-4">
                         <p className="text-xl md:text-2xl font-bold text-stone-800">
                           {prediction.nextBestDay.date.toLocaleDateString('th-TH', { weekday: 'long' })}
