@@ -1002,7 +1002,7 @@ export default function AccountingPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-stone-400">
-                          <span>{isTakeaway(order) ? 'กลับบ้าน' : `โต๊ะ ${order.table_number}`}</span>
+                          <span>{isTakeaway(order) ? 'กลับบ้าน' : ` ${order.table_number}`}</span>
                           <Minus className="w-3 h-3" />
                           <span>{formatTime(order.created_at)}</span>
                         </div>

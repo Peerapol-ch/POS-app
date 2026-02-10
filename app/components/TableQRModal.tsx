@@ -73,7 +73,7 @@ export default function TableQRModal({ table, onClose }: TableQRModalProps) {
                 </div>
 
                 <h2 className="text-2xl font-black text-blue-800 text-center mb-1">
-                    QR Code โต๊ะ {table.table_number}
+                    QR Code  {table.table_number}
                 </h2>
                 <p className="text-slate-500 font-medium text-center mb-6">
                     สแกนเพื่อสั่งอาหาร

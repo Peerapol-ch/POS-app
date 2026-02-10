@@ -100,7 +100,7 @@ export default function ReceiptModal({ data, onClose }: ReceiptModalProps) {
                 <div class="meta">
                   <div class="meta-row"><span>วันที่:</span><span>${new Date().toLocaleString('th-TH')}</span></div>
                   <div class="meta-row"><span>ออเดอร์:</span><span><b>${data.order_id}</b></span></div>
-                  <div class="meta-row"><span>โต๊ะ:</span><span><b>${data.table_number || 'กลับบ้าน'}</b></span></div>
+                  <div class="meta-row"><span>:</span><span><b>${data.table_number || 'กลับบ้าน'}</b></span></div>
                   <div class="meta-row"><span>ชำระโดย:</span><span><b>${data.payment_status}</b></span></div>
                 </div>
                 <div class="items">
@@ -154,7 +154,7 @@ export default function ReceiptModal({ data, onClose }: ReceiptModalProps) {
 ร้านไก่ย่างพังโคน
 📅 ${new Date().toLocaleString('th-TH')}
 🔖 ออเดอร์: ${data.order_id}
-🪑 โต๊ะ: ${data.table_number || 'กลับบ้าน'}
+🪑 : ${data.table_number || 'กลับบ้าน'}
 ━━━━━━━━━━━━━━━━
 ${data.items.map(item => `• ${item.menu_items?.name} x${item.quantity} = ฿${(item.price * item.quantity).toLocaleString()}`).join('\n')}
 ━━━━━━━━━━━━━━━━
@@ -220,7 +220,7 @@ ${data.items.map(item => `• ${item.menu_items?.name} x${item.quantity} = ฿${
                 <span className="text-slate-800 font-bold font-mono">{data.order_id}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">โต๊ะ</span>
+                <span className="text-slate-500"></span>
                 <span className="text-slate-800 font-bold">{data.table_number || 'กลับบ้าน'}</span>
               </div>
               <div className="flex justify-between">

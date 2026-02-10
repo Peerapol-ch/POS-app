@@ -319,7 +319,7 @@ ${qrUrl}
                   ) : (
                     <>
                       <UtensilsCrossed className="w-5 h-5" />
-                      <span className="font-bold">โต๊ะ {tableNumber || tableId}</span>
+                      <span className="font-bold"> {tableNumber || tableId}</span>
                     </>
                   )}
                 </div>
