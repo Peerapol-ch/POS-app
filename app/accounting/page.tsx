@@ -39,7 +39,7 @@ type SortBy = 'time' | 'amount' | 'status'
 
 interface DailySales {
   date: string
-  total:   number
+  total: number
   orders: number
   customers: number
   dayOfWeek: number
@@ -47,31 +47,39 @@ interface DailySales {
 
 interface HourlySales {
   hour: number
-  total:  number
-  orders:  number
+  total: number
+  orders: number
 }
 
 interface OrderItem {
-  id:   number
+  id: number
   quantity: number
   price: number
-  menu_items? :  {
+  menu_items?: {
     name: string
   }
 }
 
 interface OrderDetail {
-  id:   number
+  id: number
   order_id: string
   table_id: number | null
   table_number: string | null
   total_amount: number
-  customer_count:   number
+  customer_count: number
   status: string
   payment_status: string
-  created_at:   string
-  slip_url?: string | null  // ✅ เพิ่ม slip_url
-  items? :  OrderItem[]
+  created_at: string
+  slip_url?: string | null
+  items?: OrderItem[]
+}
+
+interface MenuRanking {
+  menu_item_id: number
+  name: string
+  total_quantity: number
+  total_revenue: number
+  order_count: number
 }
 
 export default function AccountingPage() {
@@ -89,7 +97,7 @@ export default function AccountingPage() {
 
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null)
   const [loadingOrderItems, setLoadingOrderItems] = useState(false)
-  const [showSlipModal, setShowSlipModal] = useState(false)  // ✅ เพิ่ม state สำหรับ Modal รูปสลิป
+  const [showSlipModal, setShowSlipModal] = useState(false)
 
   const [totalRevenue, setTotalRevenue] = useState(0)
   const [totalOrders, setTotalOrders] = useState(0)
@@ -109,6 +117,12 @@ export default function AccountingPage() {
 
   const thaiDays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
   const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+
+  // State สำหรับเมนูขายดี/ขายไม่ออก
+  const [topMenuItems, setTopMenuItems] = useState<MenuRanking[]>([])
+  const [bottomMenuItems, setBottomMenuItems] = useState<MenuRanking[]>([])
+  const [showMenuRanking, setShowMenuRanking] = useState(false)
+  const [menuRankingTab, setMenuRankingTab] = useState<'top' | 'bottom'>('top')
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -137,7 +151,7 @@ export default function AccountingPage() {
       end.setHours(23, 59, 59, 999)
     } else if (viewMode === 'week') {
       const day = start.getDay()
-      start.setDate(start. getDate() - day + (day === 0 ? -6 : 1))
+      start.setDate(start.getDate() - day + (day === 0 ? -6 : 1))
       start.setHours(0, 0, 0, 0)
       end.setDate(start.getDate() + 6)
       end.setHours(23, 59, 59, 999)
@@ -163,10 +177,65 @@ export default function AccountingPage() {
       prevStart.setDate(prevStart.getDate() - 7)
       prevEnd.setDate(prevEnd.getDate() - 7)
     } else {
-      prevStart.setMonth(prevStart. getMonth() - 1)
+      prevStart.setMonth(prevStart.getMonth() - 1)
       prevEnd.setMonth(prevEnd.getMonth() - 1)
     }
     return { start: prevStart, end: prevEnd }
+  }
+
+  // ✅ 1. ย้าย loadMenuRanking ออกมาเป็นฟังก์ชันแยก เพื่อให้เรียกใช้ได้
+  const loadMenuRanking = async (startDate: Date, endDate: Date) => {
+    try {
+      const { data: ordersInRange, error: ordersError } = await supabase
+        .from('orders')
+        .select('order_id')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
+        .in('status', ['served', 'completed'])
+
+      if (ordersError) throw ordersError
+      if (!ordersInRange || ordersInRange.length === 0) {
+        setTopMenuItems([])
+        setBottomMenuItems([])
+        return
+      }
+
+      const orderIds = ordersInRange.map(o => o.order_id)
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select('menu_item_id, quantity, price, menu_items(name)')
+        .in('order_id', orderIds)
+
+      if (itemsError) throw itemsError
+
+      const menuMap: { [key: number]: MenuRanking } = {}
+      ;(itemsData || []).forEach((item: any) => {
+        const id = item.menu_item_id
+        if (!menuMap[id]) {
+          menuMap[id] = {
+            menu_item_id: id,
+            name: item.menu_items?.name || `เมนู #${id}`,
+            total_quantity: 0,
+            total_revenue: 0,
+            order_count: 0,
+          }
+        }
+        menuMap[id].total_quantity += item.quantity
+        menuMap[id].total_revenue += item.price * item.quantity
+        menuMap[id].order_count += 1
+      })
+
+      const allMenuRanking = Object.values(menuMap)
+
+      const sortedTop = [...allMenuRanking].sort((a, b) => b.total_quantity - a.total_quantity)
+      const sortedBottom = [...allMenuRanking].sort((a, b) => a.total_quantity - b.total_quantity)
+
+      setTopMenuItems(sortedTop.slice(0, 10))
+      setBottomMenuItems(sortedBottom.slice(0, 10))
+    } catch (err) {
+      console.error('Error loading menu ranking:', err)
+    }
   }
 
   const loadData = async () => {
@@ -177,11 +246,13 @@ export default function AccountingPage() {
       const { start, end } = getDateRange()
       const { start: prevStart, end: prevEnd } = getPreviousDateRange()
 
-      // ✅ เพิ่ม slip_url ใน select
-      const { data: ordersData, error:  ordersError } = await supabase
+      // ✅ 2. เรียกใช้งานฟังก์ชัน loadMenuRanking ที่นี่
+      await loadMenuRanking(start, end)
+
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*, tables(table_number)')
-        .gte('created_at', start. toISOString())
+        .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString())
         .in('status', ['served', 'completed'])
         .order('created_at', { ascending: false })
@@ -195,31 +266,31 @@ export default function AccountingPage() {
         .lte('created_at', prevEnd.toISOString())
         .in('status', ['served', 'completed'])
 
-      const ordersList:  OrderDetail[] = (ordersData || []).map((order) => ({
-        id: order. id,
-        order_id: order. order_id,
+      const ordersList: OrderDetail[] = (ordersData || []).map((order) => ({
+        id: order.id,
+        order_id: order.order_id,
         table_id: order.table_id,
-        table_number: order.tables?. table_number || null,
-        total_amount: order. total_amount || 0,
+        table_number: order.tables?.table_number || null,
+        total_amount: order.total_amount || 0,
         customer_count: order.customer_count || 1,
-        status:  order.status,
-        payment_status:  order.payment_status || 'unpaid',
-        created_at: order. created_at,
-        slip_url:  order.slip_url || null,  // ✅ เพิ่ม slip_url
+        status: order.status,
+        payment_status: order.payment_status || 'unpaid',
+        created_at: order.created_at,
+        slip_url: order.slip_url || null,
       }))
 
       const revenue = ordersList.reduce((sum, o) => sum + o.total_amount, 0)
-      const customers = ordersList.reduce((sum, o) => sum + o. customer_count, 0)
-      const prevRev = (prevOrdersData || []).reduce((sum:  number, o:  any) => sum + (o.total_amount || 0), 0)
+      const customers = ordersList.reduce((sum, o) => sum + o.customer_count, 0)
+      const prevRev = (prevOrdersData || []).reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0)
 
       let cashSum = 0
       let promptPaySum = 0
       let unpaidSum = 0
 
       ordersList.forEach(order => {
-        const status = order.payment_status?. toLowerCase()
+        const status = order.payment_status?.toLowerCase()
         if (status === 'cash') {
-          cashSum += order. total_amount
+          cashSum += order.total_amount
         } else if (status === 'promptpay') {
           promptPaySum += order.total_amount
         } else {
@@ -227,7 +298,7 @@ export default function AccountingPage() {
         }
       })
 
-      const hourlyMap:  { [key: number]: HourlySales } = {}
+      const hourlyMap: { [key: number]: HourlySales } = {}
       ordersList.forEach((order) => {
         const hour = new Date(order.created_at).getHours()
         if (!hourlyMap[hour]) {
@@ -253,8 +324,8 @@ export default function AccountingPage() {
       setTotalRevenue(revenue)
       setTotalOrders(ordersList.length)
       setTotalCustomers(customers)
-      setAverageOrder(ordersList.length > 0 ? revenue / ordersList.length :  0)
-      setAvgPerCustomer(customers > 0 ? revenue / customers :  0)
+      setAverageOrder(ordersList.length > 0 ? revenue / ordersList.length : 0)
+      setAvgPerCustomer(customers > 0 ? revenue / customers : 0)
       setPreviousRevenue(prevRev)
       setCashTotal(cashSum)
       setPromptPayTotal(promptPaySum)
@@ -262,12 +333,18 @@ export default function AccountingPage() {
       setPeakHour(peakH)
 
       if (viewMode !== 'day') {
-        const dailyMap: { [key:  string]: DailySales } = {}
+        const dailyMap: { [key: string]: DailySales } = {}
         ordersList.forEach((order) => {
           const orderDate = new Date(order.created_at)
-          const dateKey = orderDate.toISOString().split('T')[0]
+          
+          // ✅ 3. แก้ไขเรื่อง Timezone: ปรับเวลาให้เป็น Local Time ก่อนสร้าง Key วันที่
+          // เพื่อให้กราฟรายวันแสดงผลถูกต้องตามเวลาไทย (ไม่หลุดไปวันก่อนหน้า)
+          const offset = orderDate.getTimezoneOffset() * 60000
+          const localDate = new Date(orderDate.getTime() - offset)
+          const dateKey = localDate.toISOString().split('T')[0]
+
           if (!dailyMap[dateKey]) {
-            dailyMap[dateKey] = { date: dateKey, total: 0, orders: 0, customers: 0, dayOfWeek:  orderDate.getDay() }
+            dailyMap[dateKey] = { date: dateKey, total: 0, orders: 0, customers: 0, dayOfWeek: orderDate.getDay() }
           }
           dailyMap[dateKey].total += order.total_amount
           dailyMap[dateKey].orders += 1
@@ -275,21 +352,21 @@ export default function AccountingPage() {
         })
         setDailyData(Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date)))
       }
-    } catch (err:  any) {
+    } catch (err: any) {
       console.error('Error loading data:', err)
-      setError(err?. message || 'ไม่สามารถโหลดข้อมูลได้')
+      setError(err?.message || 'ไม่สามารถโหลดข้อมูลได้')
     } finally {
       setLoading(false)
     }
   }
 
-  const loadOrderItems = async (order:  OrderDetail) => {
+  const loadOrderItems = async (order: OrderDetail) => {
     setSelectedOrder(order)
     setLoadingOrderItems(true)
 
     try {
       const { data: items, error } = await supabase
-        . from('order_items')
+        .from('order_items')
         .select('*, menu_items(name)')
         .eq('order_id', order.order_id)
 
@@ -300,7 +377,7 @@ export default function AccountingPage() {
         items: items || []
       })
     } catch (err) {
-      console. error('Error loading order items:', err)
+      console.error('Error loading order items:', err)
     } finally {
       setLoadingOrderItems(false)
     }
@@ -309,21 +386,21 @@ export default function AccountingPage() {
   const navigateDate = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate)
     if (viewMode === 'day') newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1))
-    else if (viewMode === 'week') newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 :  -7))
-    else newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 :  -1))
+    else if (viewMode === 'week') newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
+    else newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1))
     setCurrentDate(newDate)
   }
 
   const goToToday = () => setCurrentDate(new Date())
 
-  const selectDate = (date:  Date) => {
+  const selectDate = (date: Date) => {
     setCurrentDate(date)
     setShowCalendar(false)
   }
 
   const navigateCalendarMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(calendarDate)
-    newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 :  -1))
+    newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1))
     setCalendarDate(newDate)
   }
 
@@ -332,7 +409,7 @@ export default function AccountingPage() {
     const month = date.getMonth()
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-    const days:  (Date | null)[] = []
+    const days: (Date | null)[] = []
     for (let i = 0; i < firstDay.getDay(); i++) days.push(null)
     for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i))
     return days
@@ -340,14 +417,14 @@ export default function AccountingPage() {
 
   const isToday = (date: Date) => {
     const today = new Date()
-    return date. getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()
+    return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()
   }
 
   const isSelected = (date: Date) => {
     return date.getDate() === currentDate.getDate() && date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear()
   }
 
-  const formatCurrency = (amount:  number) => new Intl.NumberFormat('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
 
   const formatDateDisplay = () => {
     if (viewMode === 'day') {
@@ -356,13 +433,13 @@ export default function AccountingPage() {
       const { start, end } = getDateRange()
       return `${start.getDate()} - ${end.getDate()} ${start.toLocaleDateString('th-TH', { month: 'short' })}`
     } else {
-      return currentDate.toLocaleDateString('th-TH', { month:  'long', year: 'numeric' })
+      return currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })
     }
   }
 
   const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
 
-  const formatHour = (hour:  number) => `${hour.toString().padStart(2, '0')}:00`
+  const formatHour = (hour: number) => `${hour.toString().padStart(2, '0')}:00`
 
   const getPercentChange = () => {
     if (previousRevenue === 0) return totalRevenue > 0 ? 100 : 0
@@ -376,16 +453,16 @@ export default function AccountingPage() {
         return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       case 'amount':
         return sorted.sort((a, b) => b.total_amount - a.total_amount)
-      case 'status': 
+      case 'status':
         return sorted.sort((a, b) => {
-          const score = (status:  string) => {
+          const score = (status: string) => {
             if (status === 'unpaid') return 3
             if (status === 'promptpay') return 2
             return 1
           }
           return score(b.payment_status) - score(a.payment_status)
         })
-      default: 
+      default:
         return sorted
     }
   }
@@ -393,20 +470,20 @@ export default function AccountingPage() {
   const isTakeaway = (order: OrderDetail) => order.table_id === 9
 
   const percentChange = getPercentChange()
-  const dineInOrders = orders.filter(o => ! isTakeaway(o)).length
-  const takeawayOrders = orders. filter(o => isTakeaway(o)).length
-  const dineInRevenue = orders.filter(o => ! isTakeaway(o)).reduce((sum, o) => sum + o. total_amount, 0)
-  const takeawayRevenue = orders.filter(o => isTakeaway(o)).reduce((sum, o) => sum + o. total_amount, 0)
+  const dineInOrders = orders.filter(o => !isTakeaway(o)).length
+  const takeawayOrders = orders.filter(o => isTakeaway(o)).length
+  const dineInRevenue = orders.filter(o => !isTakeaway(o)).reduce((sum, o) => sum + o.total_amount, 0)
+  const takeawayRevenue = orders.filter(o => isTakeaway(o)).reduce((sum, o) => sum + o.total_amount, 0)
 
-  const maxHourlyOrders = Math.max(... hourlyData.map(h => h.orders), 1)
-  const maxDailyTotal = Math.max(... dailyData.map(d => d. total), 1)
+  const maxHourlyOrders = Math.max(...hourlyData.map(h => h.orders), 1)
+  const maxDailyTotal = Math.max(...dailyData.map(d => d.total), 1)
 
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-50">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-stone-200 border-t-stone-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-stone-500 font-medium">กำลังโหลดข้อมูล... </p>
+          <p className="text-stone-500 font-medium">กำลังโหลดข้อมูล...</p>
         </div>
       </main>
     )
@@ -489,10 +566,10 @@ export default function AccountingPage() {
                 key={mode}
                 onClick={() => setViewMode(mode)}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  viewMode === mode ?  'bg-white text-stone-800 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                  viewMode === mode ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500 hover:text-stone-700'
                 }`}
               >
-                {mode === 'day' ?  'วัน' : mode === 'week' ?  'สัปดาห์' : 'เดือน'}
+                {mode === 'day' ? 'วัน' : mode === 'week' ? 'สัปดาห์' : 'เดือน'}
               </button>
             ))}
           </div>
@@ -516,20 +593,20 @@ export default function AccountingPage() {
             </div>
             <div className="grid grid-cols-7 gap-1 mb-2">
               {thaiDays.map((day, i) => (
-                <div key={day} className={`text-center text-sm font-medium py-2 ${i === 0 ?  'text-red-400' : i === 6 ? 'text-blue-400' : 'text-stone-400'}`}>{day}</div>
+                <div key={day} className={`text-center text-sm font-medium py-2 ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-stone-400'}`}>{day}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
               {getDaysInMonth(calendarDate).map((date, index) => (
                 <div key={index} className="aspect-square p-0.5">
-                  {date ?  (
+                  {date ? (
                     <button
                       onClick={() => selectDate(date)}
                       className={`w-full h-full rounded-xl text-sm font-medium flex items-center justify-center transition-all ${
                         isSelected(date) ? 'bg-stone-800 text-white' : isToday(date) ? 'bg-stone-100 text-stone-800 ring-2 ring-stone-300' : 'hover:bg-stone-50'
-                      } ${date.getDay() === 0 && ! isSelected(date) ? 'text-red-400' : ''} ${date.getDay() === 6 && !isSelected(date) ? 'text-blue-400' : ''}`}
+                      } ${date.getDay() === 0 && !isSelected(date) ? 'text-red-400' : ''} ${date.getDay() === 6 && !isSelected(date) ? 'text-blue-400' : ''}`}
                     >
-                      {date. getDate()}
+                      {date.getDate()}
                     </button>
                   ) : null}
                 </div>
@@ -543,8 +620,8 @@ export default function AccountingPage() {
         </div>
       )}
 
-      {/* ✅ Slip Image Modal */}
-      {showSlipModal && selectedOrder?. slip_url && (
+      {/* Slip Image Modal */}
+      {showSlipModal && selectedOrder?.slip_url && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80" onClick={() => setShowSlipModal(false)} />
           <div className="relative bg-white rounded-2xl overflow-hidden max-w-lg w-full max-h-[90vh]">
@@ -572,7 +649,7 @@ export default function AccountingPage() {
                 href={selectedOrder.slip_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 py-3 bg-sky-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover: bg-sky-600 transition-colors"
+                className="flex-1 py-3 bg-sky-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-sky-600 transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
                 เปิดในแท็บใหม่
@@ -599,11 +676,11 @@ export default function AccountingPage() {
               </button>
               <div className="flex items-center gap-3">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isTakeaway(selectedOrder) ? 'bg-violet-100' : 'bg-sky-100'}`}>
-                  {isTakeaway(selectedOrder) ? <Home className="w-6 h-6 text-violet-600" /> :  <Utensils className="w-6 h-6 text-sky-600" />}
+                  {isTakeaway(selectedOrder) ? <Home className="w-6 h-6 text-violet-600" /> : <Utensils className="w-6 h-6 text-sky-600" />}
                 </div>
                 <div>
-                  <p className="text-stone-500 text-sm">{isTakeaway(selectedOrder) ? 'สั่งกลับบ้าน' :  `${selectedOrder.table_number}`}</p>
-                  <p className="font-bold text-stone-800">{selectedOrder. order_id}</p>
+                  <p className="text-stone-500 text-sm">{isTakeaway(selectedOrder) ? 'สั่งกลับบ้าน' : `${selectedOrder.table_number}`}</p>
+                  <p className="font-bold text-stone-800">{selectedOrder.order_id}</p>
                 </div>
               </div>
             </div>
@@ -621,17 +698,17 @@ export default function AccountingPage() {
                 <div className="text-center p-3 bg-stone-50 rounded-xl">
                   <p className="text-xs text-stone-400 mb-1">ชำระ</p>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    selectedOrder. payment_status === 'cash' ? 'bg-emerald-100 text-emerald-700' : 
+                    selectedOrder.payment_status === 'cash' ? 'bg-emerald-100 text-emerald-700' : 
                     selectedOrder.payment_status === 'promptpay' ? 'bg-sky-100 text-sky-700' : 
                     'bg-amber-100 text-amber-700'
                   }`}>
-                    {selectedOrder.payment_status === 'cash' ?  'เงินสด' : selectedOrder. payment_status === 'promptpay' ? 'พร้อมเพย์' : 'ค้าง'}
+                    {selectedOrder.payment_status === 'cash' ? 'เงินสด' : selectedOrder.payment_status === 'promptpay' ? 'พร้อมเพย์' : 'ค้าง'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* ✅ แสดงปุ่มดูสลิปถ้าเป็น PromptPay และมี slip_url */}
+            {/* แสดงปุ่มดูสลิปถ้าเป็น PromptPay และมี slip_url */}
             {selectedOrder.payment_status === 'promptpay' && selectedOrder.slip_url && (
               <div className="px-5 py-3 border-b border-stone-100">
                 <button
@@ -644,8 +721,8 @@ export default function AccountingPage() {
               </div>
             )}
 
-            {/* ✅ แสดงข้อความถ้าเป็น PromptPay แต่ไม่มีสลิป */}
-            {selectedOrder.payment_status === 'promptpay' && ! selectedOrder.slip_url && (
+            {/* แสดงข้อความถ้าเป็น PromptPay แต่ไม่มีสลิป */}
+            {selectedOrder.payment_status === 'promptpay' && !selectedOrder.slip_url && (
               <div className="px-5 py-3 border-b border-stone-100">
                 <div className="py-3 bg-amber-50 text-amber-600 rounded-xl text-center text-sm font-medium border border-amber-200">
                   ไม่มีรูปสลิป
@@ -663,7 +740,7 @@ export default function AccountingPage() {
                 <div className="flex items-center justify-center py-8">
                   <div className="w-6 h-6 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin"></div>
                 </div>
-              ) : selectedOrder.items && selectedOrder.items. length > 0 ? (
+              ) : selectedOrder.items && selectedOrder.items.length > 0 ? (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {selectedOrder.items.map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 bg-stone-50 rounded-xl">
@@ -671,9 +748,9 @@ export default function AccountingPage() {
                         <span className="w-7 h-7 bg-stone-200 rounded-lg flex items-center justify-center text-stone-600 font-medium text-sm">
                           {item.quantity}
                         </span>
-                        <span className="text-stone-700">{item.menu_items?. name || 'ไม่ระบุ'}</span>
+                        <span className="text-stone-700">{item.menu_items?.name || 'ไม่ระบุ'}</span>
                       </div>
-                      <span className="font-semibold text-stone-800">฿{formatCurrency(item. price * item.quantity)}</span>
+                      <span className="font-semibold text-stone-800">฿{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -707,7 +784,7 @@ export default function AccountingPage() {
               <p className="text-3xl font-bold text-stone-800">฿{formatCurrency(totalRevenue)}</p>
             </div>
             <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium ${
-              percentChange >= 0 ? 'bg-emerald-50 text-emerald-600' :  'bg-red-50 text-red-600'
+              percentChange >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
             }`}>
               {percentChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
               {Math.abs(percentChange).toFixed(1)}%
@@ -748,7 +825,7 @@ export default function AccountingPage() {
                   <span className="font-medium text-stone-800">฿{formatCurrency(cashTotal)}</span>
                 </div>
                 <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${totalRevenue > 0 ? (cashTotal / totalRevenue) * 100 :  0}%` }}></div>
+                  <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${totalRevenue > 0 ? (cashTotal / totalRevenue) * 100 : 0}%` }}></div>
                 </div>
               </div>
               <div>
@@ -757,7 +834,7 @@ export default function AccountingPage() {
                   <span className="font-medium text-stone-800">฿{formatCurrency(promptPayTotal)}</span>
                 </div>
                 <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-sky-400 rounded-full" style={{ width: `${totalRevenue > 0 ? (promptPayTotal / totalRevenue) * 100 :  0}%` }}></div>
+                  <div className="h-full bg-sky-400 rounded-full" style={{ width: `${totalRevenue > 0 ? (promptPayTotal / totalRevenue) * 100 : 0}%` }}></div>
                 </div>
               </div>
               {unpaidAmount > 0 && (
@@ -829,10 +906,105 @@ export default function AccountingPage() {
                 </div>
                 <div>
                   <p className="text-xs text-stone-500">ยอดสูงสุด</p>
-                  <p className="font-bold text-stone-800">฿{formatCurrency(Math.max(... orders. map(o => o.total_amount), 0))}</p>
+                  <p className="font-bold text-stone-800">฿{formatCurrency(Math.max(...orders.map(o => o.total_amount), 0))}</p>
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* เมนูขายดี & ขายไม่ออก */}
+        {(topMenuItems.length > 0 || bottomMenuItems.length > 0) && (
+          <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
+            {/* Header */}
+            <button
+              onClick={() => setShowMenuRanking(!showMenuRanking)}
+              className="w-full p-4 flex items-center justify-between hover:bg-stone-50 transition-colors"
+            >
+              <h3 className="font-semibold text-stone-800 flex items-center gap-2 text-sm">
+                <ShoppingBag className="w-4 h-4 text-stone-500" />
+                เมนูขายดี & ขายไม่ค่อยออก
+              </h3>
+              <ChevronDown className={`w-5 h-5 text-stone-400 transition-transform ${showMenuRanking ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showMenuRanking && (
+              <div className="px-4 pb-4">
+                {/* Tab สลับ ขายดี / ขายไม่ออก */}
+                <div className="flex gap-1 bg-stone-100 p-1 rounded-xl mb-4">
+                  <button
+                    onClick={() => setMenuRankingTab('top')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                      menuRankingTab === 'top' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                    }`}
+                  >
+                    <ArrowUpRight className="w-4 h-4" />
+                    ขายดี
+                  </button>
+                  <button
+                    onClick={() => setMenuRankingTab('bottom')}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                      menuRankingTab === 'bottom' ? 'bg-red-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                    }`}
+                  >
+                    <ArrowDownRight className="w-4 h-4" />
+                    ขายไม่ค่อยออก
+                  </button>
+                </div>
+
+                {/* รายการเมนู */}
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {(menuRankingTab === 'top' ? topMenuItems : bottomMenuItems).map((item, index) => {
+                    const maxQty = menuRankingTab === 'top'
+                      ? topMenuItems[0]?.total_quantity || 1
+                      : bottomMenuItems[bottomMenuItems.length - 1]?.total_quantity || 1
+                    
+                    return (
+                      <div key={item.menu_item_id} className="flex items-center gap-3">
+                        {/* อันดับ */}
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
+                          menuRankingTab === 'top'
+                            ? index === 0 ? 'bg-amber-100 text-amber-700'
+                              : index === 1 ? 'bg-stone-200 text-stone-600'
+                              : index === 2 ? 'bg-orange-100 text-orange-700'
+                              : 'bg-stone-100 text-stone-500'
+                            : 'bg-red-50 text-red-500'
+                        }`}>
+                          {index + 1}
+                        </div>
+
+                        {/* ข้อมูลเมนู */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-sm font-medium text-stone-800 truncate pr-2">{item.name}</p>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs text-stone-500">{item.total_quantity} ชิ้น</span>
+                              <span className="text-sm font-semibold text-stone-800">฿{formatCurrency(item.total_revenue)}</span>
+                            </div>
+                          </div>
+                          <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                menuRankingTab === 'top' ? 'bg-emerald-400' : 'bg-red-400'
+                              }`}
+                              style={{ width: `${menuRankingTab === 'top' ? (item.total_quantity / (topMenuItems[0]?.total_quantity || 1)) * 100 : 100}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-stone-400 mt-0.5">{item.order_count} ออเดอร์</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  {(menuRankingTab === 'top' ? topMenuItems : bottomMenuItems).length === 0 && (
+                    <div className="text-center py-6 text-stone-400">
+                      <ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">ไม่มีข้อมูลเมนู</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -845,8 +1017,8 @@ export default function AccountingPage() {
             </h3>
             <div className="flex items-end gap-1 h-32">
               {Array.from({ length: 24 }, (_, i) => i).map(hour => {
-                const data = hourlyData. find(h => h.hour === hour)
-                const ordersCount = data?. orders || 0
+                const data = hourlyData.find(h => h.hour === hour)
+                const ordersCount = data?.orders || 0
                 const height = ordersCount > 0 ? (ordersCount / maxHourlyOrders) * 100 : 0
 
                 return (
@@ -854,8 +1026,8 @@ export default function AccountingPage() {
                     <div className="w-full flex items-end justify-center h-24">
                       <div
                         className={`w-full max-w-[12px] rounded-t transition-all ${ordersCount > 0 ? 'bg-stone-300 hover:bg-stone-400' : 'bg-stone-100'}`}
-                        style={{ height:  `${Math.max(height, ordersCount > 0 ? 8 : 2)}%` }}
-                        title={`${formatHour(hour)}:  ${ordersCount} ออเดอร์`}
+                        style={{ height: `${Math.max(height, ordersCount > 0 ? 8 : 2)}%` }}
+                        title={`${formatHour(hour)}: ${ordersCount} ออเดอร์`}
                       ></div>
                     </div>
                     {hour % 4 === 0 && (
@@ -873,7 +1045,7 @@ export default function AccountingPage() {
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'overview' ?  'bg-stone-800 text-white' : 'text-stone-500 hover:text-stone-700'
+              activeTab === 'overview' ? 'bg-stone-800 text-white' : 'text-stone-500 hover:text-stone-700'
             }`}
           >
             <TrendingUp className="w-4 h-4" />
@@ -887,14 +1059,14 @@ export default function AccountingPage() {
           >
             <Receipt className="w-4 h-4" />
             ออเดอร์
-            <span className={`px-1. 5 py-0.5 rounded text-xs ${activeTab === 'orders' ? 'bg-white/20' : 'bg-stone-100'}`}>
+            <span className={`px-1.5 py-0.5 rounded text-xs ${activeTab === 'orders' ? 'bg-white/20' : 'bg-stone-100'}`}>
               {orders.length}
             </span>
           </button>
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'overview' ?  (
+        {activeTab === 'overview' ? (
           <>
             {viewMode !== 'day' && dailyData.length > 0 && (
               <div className="bg-white rounded-2xl p-4 border border-stone-200">
@@ -903,7 +1075,7 @@ export default function AccountingPage() {
                   ยอดขายรายวัน
                 </h3>
                 <div className="space-y-2 max-h-72 overflow-y-auto">
-                  {dailyData. slice().reverse().map((day) => (
+                  {dailyData.slice().reverse().map((day) => (
                     <div key={day.date} className="flex items-center gap-3">
                       <div className="w-16 text-right">
                         <p className="text-sm font-medium text-stone-700">{new Date(day.date).getDate()}</p>
@@ -913,7 +1085,7 @@ export default function AccountingPage() {
                         <div className="h-6 bg-stone-100 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-stone-400 rounded-full flex items-center justify-end pr-2"
-                            style={{ width:  `${(day.total / maxDailyTotal) * 100}%`, minWidth: day.total > 0 ? '40px' : '0' }}
+                            style={{ width: `${(day.total / maxDailyTotal) * 100}%`, minWidth: day.total > 0 ? '40px' : '0' }}
                           >
                             {day.total > 0 && <span className="text-xs text-white font-medium">฿{formatCurrency(day.total)}</span>}
                           </div>
@@ -946,7 +1118,7 @@ export default function AccountingPage() {
                 <div className="relative">
                   <button
                     onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="flex items-center gap-1. 5 text-sm text-stone-600 hover: text-stone-800 font-medium"
+                    className="flex items-center gap-1.5 text-sm text-stone-600 hover:text-stone-800 font-medium"
                   >
                     <Filter className="w-4 h-4" />
                     {sortBy === 'time' ? 'เวลา' : sortBy === 'amount' ? 'ยอด' : 'สถานะ'}
@@ -958,10 +1130,10 @@ export default function AccountingPage() {
                         { value: 'time', label: 'เรียงตามเวลา' },
                         { value: 'amount', label: 'เรียงตามยอด' },
                         { value: 'status', label: 'เรียงตามสถานะ' },
-                      ]. map((option) => (
+                      ].map((option) => (
                         <button
-                          key={option. value}
-                          onClick={() => { setSortBy(option. value as SortBy); setShowSortMenu(false) }}
+                          key={option.value}
+                          onClick={() => { setSortBy(option.value as SortBy); setShowSortMenu(false) }}
                           className={`w-full px-3 py-2 text-left text-sm hover:bg-stone-50 ${
                             sortBy === option.value ? 'text-stone-800 font-medium' : 'text-stone-600'
                           }`}
@@ -975,7 +1147,7 @@ export default function AccountingPage() {
               </div>
             )}
 
-            {orders.length > 0 ?  (
+            {orders.length > 0 ? (
               <div className="divide-y divide-stone-50">
                 {getSortedOrders().map((order) => (
                   <button
@@ -994,15 +1166,15 @@ export default function AccountingPage() {
                           <p className="font-semibold text-stone-800 text-sm">{order.order_id}</p>
                           <span className={`w-2 h-2 rounded-full ${
                             order.payment_status === 'cash' ? 'bg-emerald-400' : 
-                            order. payment_status === 'promptpay' ? 'bg-sky-400' :  'bg-amber-400'
+                            order.payment_status === 'promptpay' ? 'bg-sky-400' : 'bg-amber-400'
                           }`}></span>
                           {/* ✅ แสดงไอคอนรูปภาพถ้ามีสลิป */}
                           {order.payment_status === 'promptpay' && order.slip_url && (
-                            <ImageIcon className="w-3. 5 h-3.5 text-sky-500" />
+                            <ImageIcon className="w-3.5 h-3.5 text-sky-500" />
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-stone-400">
-                          <span>{isTakeaway(order) ? 'กลับบ้าน' : ` ${order.table_number}`}</span>
+                          <span>{isTakeaway(order) ? 'กลับบ้าน' : `${order.table_number}`}</span>
                           <Minus className="w-3 h-3" />
                           <span>{formatTime(order.created_at)}</span>
                         </div>
