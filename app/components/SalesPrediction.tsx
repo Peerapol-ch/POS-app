@@ -73,7 +73,7 @@ const formatCurrency = (amount: number) => {
 
 const formatHour = (hour: number) => `${hour.toString().padStart(2, '0')}:00`
 
-export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionProps) {
+export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProps) {
   const [loading, setLoading] = useState(false)
   const [prediction, setPrediction] = useState<SalesPredictionData | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'days' | 'hours' | 'insights'>('overview')
@@ -102,9 +102,10 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - 90)
 
-      const { data:  historicalData, error } = await supabase
+      // ✅ ลบ customer_count ออกจาก select เพื่อไม่ให้ดึงข้อมูลลูกค้ามาใช้
+      const { data: historicalData, error } = await supabase
         .from('orders')
-        .select('total_amount, customer_count, created_at')
+        .select('total_amount, created_at') 
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())
         .in('status', ['served', 'completed'])
@@ -121,18 +122,18 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
   }
 
   const analyzeData = (data: any[]): SalesPredictionData => {
-    const dayStats: { [key:  number]: { revenues: number[]; orders: number[]; count: number; hourlyOrders: { [h: number]: number } } } = {}
+    const dayStats: { [key: number]: { revenues: number[]; orders: number[]; count: number; hourlyOrders: { [h: number]: number } } } = {}
     const hourStats: { [key: number]: { orders: number; revenue: number; count: number } } = {}
 
     for (let i = 0; i < 7; i++) {
-      dayStats[i] = { revenues: [], orders:  [], count: 0, hourlyOrders: {} }
+      dayStats[i] = { revenues: [], orders: [], count: 0, hourlyOrders: {} }
       for (let h = 0; h < 24; h++) dayStats[i].hourlyOrders[h] = 0
     }
     for (let i = 0; i < 24; i++) {
       hourStats[i] = { orders: 0, revenue: 0, count: 0 }
     }
 
-    const dailyTotals:  { [key: string]: { total:  number; orders: number; dayOfWeek: number } } = {}
+    const dailyTotals: { [key: string]: { total: number; orders: number; dayOfWeek: number } } = {}
 
     data.forEach((order) => {
       const orderDate = new Date(order.created_at)
@@ -161,10 +162,10 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
     const timeSlotRanges = [
       { name: 'เช้า', icon: Coffee, hours: '06:00-11:59', start: 6, end: 11 },
-      { name: 'กลางวัน', icon: Sun, hours: '12:00-14:59', start:  12, end:  14 },
-      { name: 'บ่าย', icon:  Sunset, hours: '15:00-17:59', start:  15, end:  17 },
-      { name: 'เย็น', icon: Moon, hours: '18:00-21:59', start:  18, end:  21 },
-      { name: 'ดึก', icon: Star, hours: '22:00-05:59', start:  22, end:  5 },
+      { name: 'กลางวัน', icon: Sun, hours: '12:00-14:59', start: 12, end: 14 },
+      { name: 'บ่าย', icon: Sunset, hours: '15:00-17:59', start: 15, end: 17 },
+      { name: 'เย็น', icon: Moon, hours: '18:00-21:59', start: 18, end: 21 },
+      { name: 'ดึก', icon: Star, hours: '22:00-05:59', start: 22, end: 5 },
     ]
 
     let totalSlotOrders = 0
@@ -188,7 +189,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
     })
 
     timeSlots.forEach((slot) => {
-      slot.percentage = totalSlotOrders > 0 ? (slot.orders / totalSlotOrders) * 100 :  0
+      slot.percentage = totalSlotOrders > 0 ? (slot.orders / totalSlotOrders) * 100 : 0
     })
 
     const dayPredictions: DayPrediction[] = []
@@ -220,7 +221,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
         const firstAvg = stats.revenues.slice(0, midPoint).reduce((a, b) => a + b, 0) / (midPoint || 1)
         const secondAvg = stats.revenues.slice(midPoint).reduce((a, b) => a + b, 0) / (stats.revenues.length - midPoint || 1)
 
-        let trend:  'up' | 'down' | 'stable' = 'stable'
+        let trend: 'up' | 'down' | 'stable' = 'stable'
         if (secondAvg > firstAvg * 1.1) trend = 'up'
         else if (secondAvg < firstAvg * 0.9) trend = 'down'
 
@@ -241,14 +242,14 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
     const today = new Date()
     let nextBestDate = new Date(today)
-    const bestDayOfWeek = bestDays[0]?.dayOfWeek ??  0
+    const bestDayOfWeek = bestDays[0]?.dayOfWeek ?? 0
 
     while (nextBestDate.getDay() !== bestDayOfWeek || nextBestDate <= today) {
       nextBestDate.setDate(nextBestDate.getDate() + 1)
     }
 
     const peakHours = Object.entries(hourStats)
-      .map(([hour, stats]) => ({ hour:  parseInt(hour), avgOrders: stats.count > 0 ? stats.orders / totalDays : 0 }))
+      .map(([hour, stats]) => ({ hour: parseInt(hour), avgOrders: stats.count > 0 ? stats.orders / totalDays : 0 }))
       .filter((h) => h.avgOrders > 0)
       .sort((a, b) => b.avgOrders - a.avgOrders)
       .slice(0, 5)
@@ -260,41 +261,39 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
     const weekendRevenues = [...dayStats[0].revenues, ...dayStats[6].revenues]
     const weekdayRevenues = [1, 2, 3, 4, 5].flatMap((d) => dayStats[d].revenues)
-    const weekendAvg = weekendRevenues.length > 0 ?  weekendRevenues.reduce((a, b) => a + b, 0) / weekendRevenues.length :  0
+    const weekendAvg = weekendRevenues.length > 0 ? weekendRevenues.reduce((a, b) => a + b, 0) / weekendRevenues.length : 0
     const weekdayAvg = weekdayRevenues.length > 0 ? weekdayRevenues.reduce((a, b) => a + b, 0) / weekdayRevenues.length : 0
 
-    const insights:  string[] = []
+    const insights: string[] = []
     const totalRevenue = data.reduce((sum, o) => sum + (o.total_amount || 0), 0)
-    const avgOrderValue = data.length > 0 ?  totalRevenue / data.length : 0
+    
+    // ✅ คำนวณยอดเฉลี่ยต่อบิล (Average Order Value) แทนเฉลี่ยต่อคน
+    const avgOrderValue = data.length > 0 ? totalRevenue / data.length : 0
 
     if (bestDays.length > 0) {
       insights.push(`วัน${bestDays[0].dayName}เป็นวันที่ขายดีที่สุด เฉลี่ย ฿${formatCurrency(bestDays[0].avgRevenue)}/วัน`)
     }
     if (peakHours.length > 0) {
-      insights.push(`ช่วงเวลา ${formatHour(peakHours[0].hour)} น.  มีลูกค้ามากที่สุด`)
+      insights.push(`ช่วงเวลา ${formatHour(peakHours[0].hour)} น. มีลูกค้ามากที่สุด`)
     }
-    const bestSlot = timeSlots.reduce((max, s) => s.orders > max.orders ?  s : max, timeSlots[0])
+    const bestSlot = timeSlots.reduce((max, s) => s.orders > max.orders ? s : max, timeSlots[0])
     if (bestSlot) {
       insights.push(`ช่วง${bestSlot.name} (${bestSlot.hours}) ขายดีที่สุด ${bestSlot.percentage.toFixed(0)}%`)
     }
 
-    // --- ส่วนที่แก้ไข Logic เพื่อป้องกัน Infinity% ---
     if (weekendAvg > weekdayAvg * 1.1) {
-      // กรณีวันหยุดขายดีกว่า
       if (weekdayAvg > 0) {
          insights.push(`วันหยุดขายดีกว่าวันธรรมดา ${(((weekendAvg / weekdayAvg) - 1) * 100).toFixed(0)}%`)
       } else {
          insights.push(`วันหยุดขายดีกว่า (ข้อมูลวันธรรมดาไม่เพียงพอ)`)
       }
     } else if (weekdayAvg > weekendAvg * 1.1) {
-      // กรณีวันธรรมดาขายดีกว่า
       if (weekendAvg > 0) {
          insights.push(`วันธรรมดาขายดีกว่าวันหยุด ${(((weekdayAvg / weekendAvg) - 1) * 100).toFixed(0)}%`)
       } else {
          insights.push(`วันธรรมดาขายดีกว่าวันหยุด (ข้อมูลวันหยุดไม่เพียงพอ)`)
       }
     }
-    // ---------------------------------------------
 
     if (avgOrderValue > 0) {
       insights.push(`ยอดเฉลี่ยต่อบิล ฿${formatCurrency(avgOrderValue)}`)
@@ -302,17 +301,17 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
     return {
       bestDays,
-      nextBestDay:  { date: nextBestDate, prediction: bestDays[0]?.avgRevenue || 0, dayName: thaiDayNames[bestDayOfWeek], peakHour: bestDays[0]?.peakHour || 12 },
+      nextBestDay: { date: nextBestDate, prediction: bestDays[0]?.avgRevenue || 0, dayName: thaiDayNames[bestDayOfWeek], peakHour: bestDays[0]?.peakHour || 12 },
       timeSlots,
       peakHours,
       insights,
-      weekdayVsWeekend:  { weekday: weekdayAvg, weekend: weekendAvg },
-      averageOrderValue:  avgOrderValue,
+      weekdayVsWeekend: { weekday: weekdayAvg, weekend: weekendAvg },
+      averageOrderValue: avgOrderValue,
       busiestHour,
       slowestHour,
       totalOrders: data.length,
       totalRevenue,
-      analyzedDays:  totalDays
+      analyzedDays: totalDays
     }
   }
 
@@ -320,12 +319,8 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm">
-      {/* Modified Container:
-        - Mobile: inset-0 (full screen)
-        - Tablet/Desktop: inset-4 / inset-8 (popup style)
-      */}
       <div className="absolute inset-0 sm:inset-4 lg:inset-8 bg-stone-50 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-         
+        
         {/* Header */}
         <div className="bg-white border-b border-stone-200 p-4 lg:p-5 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -347,13 +342,12 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
             </button>
           </div>
 
-          {/* Tabs - Scrollable on very small screens */}
           <div className="flex gap-1 mt-4 bg-stone-100 p-1 rounded-xl overflow-x-auto">
             {[
-              { id:  'overview', label: 'ภาพรวม', icon: Target },
-              { id: 'days', label: 'รายวัน', icon:  Calendar },
+              { id: 'overview', label: 'ภาพรวม', icon: Target },
+              { id: 'days', label: 'รายวัน', icon: Calendar },
               { id: 'hours', label: 'รายชั่วโมง', icon: Clock },
-              { id: 'insights', label: 'คำแนะนำ', icon:  Lightbulb },
+              { id: 'insights', label: 'คำแนะนำ', icon: Lightbulb },
             ].map((tab) => {
               const Icon = tab.icon
               return (
@@ -377,14 +371,14 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 sm:pb-6">
-          {loading ?  (
+          {loading ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
                 <div className="w-12 h-12 border-4 border-stone-200 border-t-violet-500 rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-stone-500 font-medium">กำลังวิเคราะห์ข้อมูล...</p>
               </div>
             </div>
-          ) : prediction ?  (
+          ) : prediction ? (
             <>
               {/* Overview Tab */}
               {activeTab === 'overview' && (
@@ -398,7 +392,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                         </div>
                         <span className="font-semibold text-stone-800">วันขายดีถัดไป</span>
                       </div>
-                       
+                        
                       <div className="mb-4">
                         <p className="text-xl md:text-2xl font-bold text-stone-800">
                           {prediction.nextBestDay.date.toLocaleDateString('th-TH', { weekday: 'long' })}
@@ -410,7 +404,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
 
                       <div className="flex items-center gap-2 text-sm text-stone-500 mb-4">
                         <Clock className="w-4 h-4" />
-                        <span>ช่วงขายดี:  {formatHour(prediction.nextBestDay.peakHour)} น. </span>
+                        <span>ช่วงขายดี: {formatHour(prediction.nextBestDay.peakHour)} น. </span>
                       </div>
 
                       <div className="pt-4 border-t border-stone-100">
@@ -433,7 +427,7 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                         {prediction.bestDays.map((day, index) => (
                           <div key={day.dayOfWeek} className="px-4 py-3 flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                              index === 0 ?  'bg-amber-100 text-amber-700' : 
+                              index === 0 ? 'bg-amber-100 text-amber-700' : 
                               index === 1 ? 'bg-stone-100 text-stone-600' :
                               'bg-orange-50 text-orange-600'
                             }`}>
@@ -624,10 +618,10 @@ export default function SalesPrediction({ isOpen, onClose }:  SalesPredictionPro
                           <div key={hour.hour} className={`px-4 py-3 rounded-xl flex-grow md:flex-grow-0 ${
                             index === 0
                               ? 'bg-stone-800 text-white'
-                              :  'bg-stone-100 text-stone-600'
+                              : 'bg-stone-100 text-stone-600'
                           }`}>
                             <p className="font-bold text-lg">{formatHour(hour.hour)}</p>
-                            <p className={`text-sm ${index === 0 ?  'text-stone-300' : 'text-stone-400'}`}>
+                            <p className={`text-sm ${index === 0 ? 'text-stone-300' : 'text-stone-400'}`}>
                               {hour.avgOrders.toFixed(1)} ออเดอร์
                             </p>
                           </div>

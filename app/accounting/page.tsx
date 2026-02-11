@@ -113,7 +113,6 @@ export default function AccountingPage() {
   const [unpaidAmount, setUnpaidAmount] = useState(0)
 
   const [peakHour, setPeakHour] = useState<number | null>(null)
-  const [avgPerCustomer, setAvgPerCustomer] = useState(0)
 
   const thaiDays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
   const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
@@ -183,7 +182,7 @@ export default function AccountingPage() {
     return { start: prevStart, end: prevEnd }
   }
 
-  // ✅ 1. ย้าย loadMenuRanking ออกมาเป็นฟังก์ชันแยก เพื่อให้เรียกใช้ได้
+  // ✅ ย้าย loadMenuRanking ออกมาเป็นฟังก์ชันแยก เพื่อให้เรียกใช้ได้
   const loadMenuRanking = async (startDate: Date, endDate: Date) => {
     try {
       const { data: ordersInRange, error: ordersError } = await supabase
@@ -246,7 +245,7 @@ export default function AccountingPage() {
       const { start, end } = getDateRange()
       const { start: prevStart, end: prevEnd } = getPreviousDateRange()
 
-      // ✅ 2. เรียกใช้งานฟังก์ชัน loadMenuRanking ที่นี่
+      // ✅ เรียกใช้งานฟังก์ชัน loadMenuRanking ที่นี่
       await loadMenuRanking(start, end)
 
       const { data: ordersData, error: ordersError } = await supabase
@@ -325,7 +324,6 @@ export default function AccountingPage() {
       setTotalOrders(ordersList.length)
       setTotalCustomers(customers)
       setAverageOrder(ordersList.length > 0 ? revenue / ordersList.length : 0)
-      setAvgPerCustomer(customers > 0 ? revenue / customers : 0)
       setPreviousRevenue(prevRev)
       setCashTotal(cashSum)
       setPromptPayTotal(promptPaySum)
@@ -337,8 +335,7 @@ export default function AccountingPage() {
         ordersList.forEach((order) => {
           const orderDate = new Date(order.created_at)
           
-          // ✅ 3. แก้ไขเรื่อง Timezone: ปรับเวลาให้เป็น Local Time ก่อนสร้าง Key วันที่
-          // เพื่อให้กราฟรายวันแสดงผลถูกต้องตามเวลาไทย (ไม่หลุดไปวันก่อนหน้า)
+          // ✅ แก้ไขเรื่อง Timezone
           const offset = orderDate.getTimezoneOffset() * 60000
           const localDate = new Date(orderDate.getTime() - offset)
           const dateKey = localDate.toISOString().split('T')[0]
@@ -791,7 +788,8 @@ export default function AccountingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          {/* ✅ ปรับ Grid เป็น 3 ช่อง และลบ Average/Person ออก */}
+          <div className="grid grid-cols-3 gap-2">
             <div className="text-center p-3 bg-stone-50 rounded-xl">
               <p className="text-xl font-bold text-stone-800">{totalOrders}</p>
               <p className="text-xs text-stone-500">ออเดอร์</p>
@@ -803,10 +801,6 @@ export default function AccountingPage() {
             <div className="text-center p-3 bg-stone-50 rounded-xl">
               <p className="text-xl font-bold text-stone-800">฿{formatCurrency(averageOrder)}</p>
               <p className="text-xs text-stone-500">เฉลี่ย/บิล</p>
-            </div>
-            <div className="text-center p-3 bg-stone-50 rounded-xl">
-              <p className="text-xl font-bold text-stone-800">฿{formatCurrency(avgPerCustomer)}</p>
-              <p className="text-xs text-stone-500">เฉลี่ย/คน</p>
             </div>
           </div>
         </div>
@@ -1168,7 +1162,7 @@ export default function AccountingPage() {
                             order.payment_status === 'cash' ? 'bg-emerald-400' : 
                             order.payment_status === 'promptpay' ? 'bg-sky-400' : 'bg-amber-400'
                           }`}></span>
-                          {/* ✅ แสดงไอคอนรูปภาพถ้ามีสลิป */}
+                          {/* แสดงไอคอนรูปภาพถ้ามีสลิป */}
                           {order.payment_status === 'promptpay' && order.slip_url && (
                             <ImageIcon className="w-3.5 h-3.5 text-sky-500" />
                           )}
