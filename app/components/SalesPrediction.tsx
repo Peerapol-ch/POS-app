@@ -20,7 +20,14 @@ import {
   Target,
   Award,
   ChevronRight,
-  Minus
+  Minus,
+  Flame,
+  AlertTriangle,
+  XCircle,
+  UtensilsCrossed,
+  Medal,
+  ThumbsDown,
+  Ban
 } from 'lucide-react'
 
 interface TimeSlotData {
@@ -42,6 +49,15 @@ interface DayPrediction {
   bestTimeSlot: string
 }
 
+interface MenuSalesData {
+  id: number
+  name: string
+  totalQuantity: number
+  totalRevenue: number
+  price: number
+  orderCount: number
+}
+
 interface SalesPredictionData {
   bestDays: DayPrediction[]
   nextBestDay: { date: Date; prediction: number; dayName: string; peakHour: number }
@@ -55,6 +71,9 @@ interface SalesPredictionData {
   totalOrders: number
   totalRevenue: number
   analyzedDays: number
+  topMenuItems: MenuSalesData[]
+  worstMenuItems: MenuSalesData[]
+  neverSoldItems: { id: number; name: string; price: number }[]
 }
 
 interface SalesPredictionProps {
@@ -63,6 +82,9 @@ interface SalesPredictionProps {
 }
 
 const thaiDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
+
+// ✅ หมวดที่ไม่ต้องนำมาวิเคราะห์
+const EXCLUDED_CATEGORY_IDS = [15, 16]
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('th-TH', {
@@ -76,7 +98,7 @@ const formatHour = (hour: number) => `${hour.toString().padStart(2, '0')}:00`
 export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProps) {
   const [loading, setLoading] = useState(false)
   const [prediction, setPrediction] = useState<SalesPredictionData | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'days' | 'hours' | 'insights'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'days' | 'hours' | 'menu' | 'insights'>('overview')
 
   useEffect(() => {
     if (isOpen && !prediction) {
@@ -102,17 +124,44 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - 90)
 
-      // ✅ ลบ customer_count ออกจาก select เพื่อไม่ให้ดึงข้อมูลลูกค้ามาใช้
       const { data: historicalData, error } = await supabase
         .from('orders')
-        .select('total_amount, created_at') 
+        .select('total_amount, created_at')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())
         .in('status', ['served', 'completed'])
 
       if (error) throw error
 
-      const result = analyzeData(historicalData || [])
+      // ✅ โหลด Order Items พร้อมชื่อเมนู + category_id
+      const { data: orderItemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select('menu_item_id, quantity, price, menu_items(id, name, price, category_id)')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
+
+      if (itemsError) console.error('Order items error:', itemsError)
+
+      // ✅ โหลดเมนูทั้งหมด (ไม่รวมหมวด 15, 16)
+      const { data: allMenuItems, error: menuError } = await supabase
+        .from('menu_items')
+        .select('id, name, price, is_available, category_id')
+        .not('category_id', 'in', `(${EXCLUDED_CATEGORY_IDS.join(',')})`)
+        .order('name')
+
+      if (menuError) console.error('Menu items error:', menuError)
+
+      // ✅ กรอง Order Items ที่อยู่ในหมวด 15, 16 ออก
+      const filteredOrderItems = (orderItemsData || []).filter((item: any) => {
+        const categoryId = item.menu_items?.category_id
+        return !EXCLUDED_CATEGORY_IDS.includes(categoryId)
+      })
+
+      const result = analyzeData(
+        historicalData || [],
+        filteredOrderItems,
+        allMenuItems || []
+      )
       setPrediction(result)
     } catch (err) {
       console.error('Prediction error:', err)
@@ -121,7 +170,12 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
     }
   }
 
-  const analyzeData = (data: any[]): SalesPredictionData => {
+  const analyzeData = (
+    data: any[],
+    orderItems: any[],
+    allMenuItems: any[]
+  ): SalesPredictionData => {
+    // ========== วิเคราะห์วันและเวลา ==========
     const dayStats: { [key: number]: { revenues: number[]; orders: number[]; count: number; hourlyOrders: { [h: number]: number } } } = {}
     const hourStats: { [key: number]: { orders: number; revenue: number; count: number } } = {}
 
@@ -225,15 +279,7 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
         if (secondAvg > firstAvg * 1.1) trend = 'up'
         else if (secondAvg < firstAvg * 0.9) trend = 'down'
 
-        dayPredictions.push({
-          dayName: thaiDayNames[i],
-          dayOfWeek: i,
-          avgRevenue,
-          avgOrders,
-          trend,
-          peakHour,
-          bestTimeSlot
-        })
+        dayPredictions.push({ dayName: thaiDayNames[i], dayOfWeek: i, avgRevenue, avgOrders, trend, peakHour, bestTimeSlot })
       }
     }
 
@@ -264,11 +310,55 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
     const weekendAvg = weekendRevenues.length > 0 ? weekendRevenues.reduce((a, b) => a + b, 0) / weekendRevenues.length : 0
     const weekdayAvg = weekdayRevenues.length > 0 ? weekdayRevenues.reduce((a, b) => a + b, 0) / weekdayRevenues.length : 0
 
-    const insights: string[] = []
     const totalRevenue = data.reduce((sum, o) => sum + (o.total_amount || 0), 0)
-    
-    // ✅ คำนวณยอดเฉลี่ยต่อบิล (Average Order Value) แทนเฉลี่ยต่อคน
     const avgOrderValue = data.length > 0 ? totalRevenue / data.length : 0
+
+    // ========== ✅ วิเคราะห์เมนู (ไม่รวมหมวด 15, 16) ==========
+    const menuSalesMap: { [key: number]: MenuSalesData } = {}
+
+    orderItems.forEach((item: any) => {
+      const menuId = item.menu_item_id
+      const menuName = item.menu_items?.name || `เมนู #${menuId}`
+      const menuPrice = item.menu_items?.price || item.price || 0
+      const quantity = item.quantity || 1
+      const itemTotal = (item.price || menuPrice) * quantity
+
+      if (!menuSalesMap[menuId]) {
+        menuSalesMap[menuId] = {
+          id: menuId,
+          name: menuName,
+          totalQuantity: 0,
+          totalRevenue: 0,
+          price: menuPrice,
+          orderCount: 0,
+        }
+      }
+
+      menuSalesMap[menuId].totalQuantity += quantity
+      menuSalesMap[menuId].totalRevenue += itemTotal
+      menuSalesMap[menuId].orderCount += 1
+    })
+
+    const allSoldMenus = Object.values(menuSalesMap).sort((a, b) => b.totalQuantity - a.totalQuantity)
+
+    const topMenuItems = allSoldMenus.slice(0, 5)
+
+    const worstMenuItems = allSoldMenus.length > 5
+      ? allSoldMenus.slice(-5).reverse()
+      : allSoldMenus.slice().reverse().slice(0, 5)
+
+    // ✅ เมนูที่ไม่เคยขาย (ไม่รวมหมวด 15, 16 เพราะกรองตอน query แล้ว)
+    const soldMenuIds = new Set(Object.keys(menuSalesMap).map(Number))
+    const neverSoldItems = (allMenuItems || [])
+      .filter((menu: any) => !soldMenuIds.has(menu.id))
+      .map((menu: any) => ({
+        id: menu.id,
+        name: menu.name,
+        price: menu.price,
+      }))
+
+    // ========== Insights ==========
+    const insights: string[] = []
 
     if (bestDays.length > 0) {
       insights.push(`วัน${bestDays[0].dayName}เป็นวันที่ขายดีที่สุด เฉลี่ย ฿${formatCurrency(bestDays[0].avgRevenue)}/วัน`)
@@ -283,20 +373,30 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
 
     if (weekendAvg > weekdayAvg * 1.1) {
       if (weekdayAvg > 0) {
-         insights.push(`วันหยุดขายดีกว่าวันธรรมดา ${(((weekendAvg / weekdayAvg) - 1) * 100).toFixed(0)}%`)
+        insights.push(`วันหยุดขายดีกว่าวันธรรมดา ${(((weekendAvg / weekdayAvg) - 1) * 100).toFixed(0)}%`)
       } else {
-         insights.push(`วันหยุดขายดีกว่า (ข้อมูลวันธรรมดาไม่เพียงพอ)`)
+        insights.push(`วันหยุดขายดีกว่า (ข้อมูลวันธรรมดาไม่เพียงพอ)`)
       }
     } else if (weekdayAvg > weekendAvg * 1.1) {
       if (weekendAvg > 0) {
-         insights.push(`วันธรรมดาขายดีกว่าวันหยุด ${(((weekdayAvg / weekendAvg) - 1) * 100).toFixed(0)}%`)
+        insights.push(`วันธรรมดาขายดีกว่าวันหยุด ${(((weekdayAvg / weekendAvg) - 1) * 100).toFixed(0)}%`)
       } else {
-         insights.push(`วันธรรมดาขายดีกว่าวันหยุด (ข้อมูลวันหยุดไม่เพียงพอ)`)
+        insights.push(`วันธรรมดาขายดีกว่าวันหยุด (ข้อมูลวันหยุดไม่เพียงพอ)`)
       }
     }
 
     if (avgOrderValue > 0) {
       insights.push(`ยอดเฉลี่ยต่อบิล ฿${formatCurrency(avgOrderValue)}`)
+    }
+
+    if (topMenuItems.length > 0) {
+      insights.push(`${topMenuItems[0].name} ขายดีที่สุด ${formatCurrency(topMenuItems[0].totalQuantity)} ชิ้น (ไม่รวมข้าว/น้ำ)`)
+    }
+    if (neverSoldItems.length > 0) {
+      insights.push(`มี ${neverSoldItems.length} เมนูที่ยังไม่เคยขายได้เลย (ไม่รวมข้าว/น้ำ)`)
+    }
+    if (worstMenuItems.length > 0 && worstMenuItems[0].totalQuantity <= 3) {
+      insights.push(`${worstMenuItems[0].name} ขายได้น้อยมาก (${worstMenuItems[0].totalQuantity} ชิ้น) ควรพิจารณาโปรโมท`)
     }
 
     return {
@@ -311,7 +411,10 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
       slowestHour,
       totalOrders: data.length,
       totalRevenue,
-      analyzedDays: totalDays
+      analyzedDays: totalDays,
+      topMenuItems,
+      worstMenuItems,
+      neverSoldItems,
     }
   }
 
@@ -342,27 +445,28 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
             </button>
           </div>
 
-          <div className="flex gap-1 mt-4 bg-stone-100 p-1 rounded-xl overflow-x-auto">
+          {/* Tabs */}
+          <div className="flex gap-1 mt-4 bg-stone-100 p-1 rounded-xl overflow-x-auto scrollbar-hide">
             {[
               { id: 'overview', label: 'ภาพรวม', icon: Target },
               { id: 'days', label: 'รายวัน', icon: Calendar },
-              { id: 'hours', label: 'รายชั่วโมง', icon: Clock },
-              { id: 'insights', label: 'คำแนะนำ', icon: Lightbulb },
+              { id: 'hours', label: 'เวลา', icon: Clock },
+              { id: 'menu', label: 'เมนู', icon: UtensilsCrossed },
+              { id: 'insights', label: 'แนะนำ', icon: Lightbulb },
             ].map((tab) => {
               const Icon = tab.icon
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 min-w-[80px] py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 min-w-[64px] py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-1.5 ${
                     activeTab === tab.id
                       ? 'bg-white text-stone-800 shadow-sm'
                       : 'text-stone-500 hover:text-stone-700'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden text-xs">{tab.label}</span> 
+                  <span>{tab.label}</span>
                 </button>
               )
             })}
@@ -380,10 +484,9 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
             </div>
           ) : prediction ? (
             <>
-              {/* Overview Tab */}
+              {/* ==================== Overview Tab ==================== */}
               {activeTab === 'overview' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                  {/* Next Best Day Card */}
                   <div className="md:col-span-2 lg:col-span-1">
                     <div className="bg-white rounded-2xl p-5 border border-stone-200 h-full">
                       <div className="flex items-center gap-2 mb-4">
@@ -392,7 +495,6 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                         </div>
                         <span className="font-semibold text-stone-800">วันขายดีถัดไป</span>
                       </div>
-                        
                       <div className="mb-4">
                         <p className="text-xl md:text-2xl font-bold text-stone-800">
                           {prediction.nextBestDay.date.toLocaleDateString('th-TH', { weekday: 'long' })}
@@ -401,12 +503,10 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                           {prediction.nextBestDay.date.toLocaleDateString('th-TH', { day: 'numeric', month: 'long' })}
                         </p>
                       </div>
-
                       <div className="flex items-center gap-2 text-sm text-stone-500 mb-4">
                         <Clock className="w-4 h-4" />
-                        <span>ช่วงขายดี: {formatHour(prediction.nextBestDay.peakHour)} น. </span>
+                        <span>ช่วงขายดี: {formatHour(prediction.nextBestDay.peakHour)} น.</span>
                       </div>
-
                       <div className="pt-4 border-t border-stone-100">
                         <p className="text-xs text-stone-400 mb-1">คาดการณ์รายได้</p>
                         <p className="text-2xl md:text-3xl font-bold text-emerald-600">฿{formatCurrency(prediction.nextBestDay.prediction)}</p>
@@ -414,7 +514,6 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                     </div>
                   </div>
 
-                  {/* Top 3 Days */}
                   <div className="lg:col-span-1">
                     <div className="bg-white rounded-2xl border border-stone-200 h-full">
                       <div className="px-4 py-3 border-b border-stone-100">
@@ -427,7 +526,7 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                         {prediction.bestDays.map((day, index) => (
                           <div key={day.dayOfWeek} className="px-4 py-3 flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                              index === 0 ? 'bg-amber-100 text-amber-700' : 
+                              index === 0 ? 'bg-amber-100 text-amber-700' :
                               index === 1 ? 'bg-stone-100 text-stone-600' :
                               'bg-orange-50 text-orange-600'
                             }`}>
@@ -450,9 +549,7 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                     </div>
                   </div>
 
-                  {/* Quick Stats */}
                   <div className="lg:col-span-1 space-y-4">
-                    {/* Weekday vs Weekend */}
                     <div className="bg-white rounded-2xl p-4 border border-stone-200">
                       <h3 className="font-semibold text-stone-800 mb-3 text-sm">วันธรรมดา vs วันหยุด</h3>
                       <div className="grid grid-cols-2 gap-3">
@@ -467,7 +564,6 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                       </div>
                     </div>
 
-                    {/* Key Metrics */}
                     <div className="bg-white rounded-2xl p-4 border border-stone-200">
                       <h3 className="font-semibold text-stone-800 mb-3 text-sm">สถิติสำคัญ</h3>
                       <div className="space-y-3">
@@ -487,10 +583,10 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Moon className="w-4 h-4 text-stone-400" />
-                            <span className="text-sm text-stone-600">ชั่วโมงเงียบ</span>
+                            <Flame className="w-4 h-4 text-orange-500" />
+                            <span className="text-sm text-stone-600">เมนูขายดี</span>
                           </div>
-                          <span className="font-semibold text-stone-800">{formatHour(prediction.slowestHour.hour)}</span>
+                          <span className="font-semibold text-stone-800 truncate max-w-[120px]">{prediction.topMenuItems[0]?.name || '-'}</span>
                         </div>
                       </div>
                     </div>
@@ -498,10 +594,9 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                 </div>
               )}
 
-              {/* Days Tab */}
+              {/* ==================== Days Tab ==================== */}
               {activeTab === 'days' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6">
-                  {/* Next Best Day */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
                   <div className="bg-white rounded-2xl p-5 border border-stone-200">
                     <div className="flex items-center gap-2 mb-4">
                       <Zap className="w-5 h-5 text-amber-500" />
@@ -525,7 +620,6 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                     </div>
                   </div>
 
-                  {/* All Days Ranking */}
                   <div className="bg-white rounded-2xl border border-stone-200">
                     <div className="px-4 py-3 border-b border-stone-100">
                       <h3 className="font-semibold text-stone-800">อันดับวันขายดี</h3>
@@ -546,11 +640,11 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                               {day.trend === 'up' && <TrendingUp className="w-4 h-4 text-emerald-500" />}
                               {day.trend === 'down' && <TrendingDown className="w-4 h-4 text-red-400" />}
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs text-stone-400">
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-stone-400">
                               <span>{day.avgOrders.toFixed(0)} ออเดอร์</span>
-                              <Minus className="hidden md:block w-3 h-3" />
+                              <span>•</span>
                               <span>ช่วง{day.bestTimeSlot}</span>
-                              <Minus className="hidden md:block w-3 h-3" />
+                              <span>•</span>
                               <span>Peak {formatHour(day.peakHour)}</span>
                             </div>
                           </div>
@@ -565,10 +659,9 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                 </div>
               )}
 
-              {/* Hours Tab */}
+              {/* ==================== Hours Tab ==================== */}
               {activeTab === 'hours' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-                  {/* Time Slots */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-stone-800 flex items-center gap-2">
                       <Clock className="w-4 h-4 text-stone-500" />
@@ -581,10 +674,10 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                         return (
                           <div key={slot.name} className="bg-white rounded-xl p-4 border border-stone-200">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center">
+                              <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center shrink-0">
                                 <IconComponent className="w-6 h-6 text-stone-600" />
                               </div>
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex flex-wrap items-center gap-2">
                                     <span className="font-semibold text-stone-800">{slot.name}</span>
@@ -596,10 +689,7 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                                   <span className="font-bold text-stone-800">{slot.percentage.toFixed(0)}%</span>
                                 </div>
                                 <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-stone-400 rounded-full"
-                                    style={{ width: `${slot.percentage}%` }}
-                                  />
+                                  <div className="h-full bg-stone-400 rounded-full transition-all" style={{ width: `${slot.percentage}%` }} />
                                 </div>
                                 <p className="text-xs text-stone-400 mt-2">{slot.orders} ออเดอร์ • ฿{formatCurrency(slot.revenue)}</p>
                               </div>
@@ -609,16 +699,13 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                       })}
                   </div>
 
-                  {/* Peak Hours */}
                   <div className="space-y-4">
                     <div className="bg-white rounded-2xl p-4 border border-stone-200">
                       <h3 className="font-semibold text-stone-800 mb-4">ชั่วโมงยอดนิยม</h3>
                       <div className="flex flex-wrap gap-2">
                         {prediction.peakHours.slice(0, 5).map((hour, index) => (
                           <div key={hour.hour} className={`px-4 py-3 rounded-xl flex-grow md:flex-grow-0 ${
-                            index === 0
-                              ? 'bg-stone-800 text-white'
-                              : 'bg-stone-100 text-stone-600'
+                            index === 0 ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-600'
                           }`}>
                             <p className="font-bold text-lg">{formatHour(hour.hour)}</p>
                             <p className={`text-sm ${index === 0 ? 'text-stone-300' : 'text-stone-400'}`}>
@@ -632,53 +719,181 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-emerald-50 rounded-xl p-4 text-center border border-emerald-100">
                         <Activity className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                        <p className="text-xs text-stone-500 mb-1">ชั่วโมงขายดีสุด</p>
+                        <p className="text-xs text-stone-500 mb-1">ขายดีสุด</p>
                         <p className="text-xl font-bold text-emerald-700">{formatHour(prediction.busiestHour.hour)}</p>
                       </div>
                       <div className="bg-stone-100 rounded-xl p-4 text-center border border-stone-200">
                         <Moon className="w-8 h-8 text-stone-400 mx-auto mb-2" />
-                        <p className="text-xs text-stone-500 mb-1">ชั่วโมงเงียบสุด</p>
+                        <p className="text-xs text-stone-500 mb-1">เงียบสุด</p>
                         <p className="text-xl font-bold text-stone-600">{formatHour(prediction.slowestHour.hour)}</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl p-4 border border-stone-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-stone-600">ยอดเฉลี่ย/บิล</span>
-                        <span className="text-xl font-bold text-stone-800">฿{formatCurrency(prediction.averageOrderValue)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Insights Tab */}
+              {/* ==================== ✅ Menu Tab ==================== */}
+              {activeTab === 'menu' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                  {/* 🔥 Top 5 ขายดีที่สุด */}
+                  <div className="lg:col-span-1">
+                    <div className="bg-white rounded-2xl border border-stone-200 h-full">
+                      <div className="px-4 py-3 border-b border-stone-100 flex items-center gap-2">
+                        <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
+                          <Flame className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-stone-800 text-sm">ขายดีที่สุด</h3>
+                          <p className="text-[10px] text-stone-400">Top 5</p>
+                        </div>
+                      </div>
+                      
+                      {prediction.topMenuItems.length > 0 ? (
+                        <div className="divide-y divide-stone-50">
+                          {prediction.topMenuItems.map((item, index) => (
+                            <div key={item.id} className="px-4 py-3 flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
+                                index === 0 ? 'bg-amber-100 text-amber-700' :
+                                index === 1 ? 'bg-stone-100 text-stone-600' :
+                                index === 2 ? 'bg-orange-50 text-orange-600' :
+                                'bg-stone-50 text-stone-500'
+                              }`}>
+                                {index === 0 ? <Medal className="w-4 h-4" /> : index + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-stone-800 text-sm truncate">{item.name}</p>
+                                <div className="flex items-center gap-2 text-xs text-stone-400">
+                                  <span>•</span>
+                                  <span>{item.orderCount} ครั้ง</span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="font-bold text-emerald-600 text-sm">฿{formatCurrency(item.totalRevenue)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center">
+                          <UtensilsCrossed className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+                          <p className="text-stone-400 text-sm">ไม่มีข้อมูล</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 📉 Top 5 ขายน้อยที่สุด */}
+                  <div className="lg:col-span-1">
+                    <div className="bg-white rounded-2xl border border-stone-200 h-full">
+                      <div className="px-4 py-3 border-b border-stone-100 flex items-center gap-2">
+                        <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
+                          <ThumbsDown className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-stone-800 text-sm">ขายน้อยที่สุด</h3>
+                          <p className="text-[10px] text-stone-400">Bottom 5</p>
+                        </div>
+                      </div>
+                      
+                      {prediction.worstMenuItems.length > 0 ? (
+                        <div className="divide-y divide-stone-50">
+                          {prediction.worstMenuItems.map((item, index) => (
+                            <div key={item.id} className="px-4 py-3 flex items-center gap-3">
+                              <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center text-sm font-bold text-red-400 shrink-0">
+                                {index + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-stone-800 text-sm truncate">{item.name}</p>
+                                <div className="flex items-center gap-2 text-xs text-stone-400">
+                                  <span>•</span>
+                                  <span>{item.orderCount} ครั้ง</span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="font-bold text-stone-500 text-sm">฿{formatCurrency(item.totalRevenue)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center">
+                          <UtensilsCrossed className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+                          <p className="text-stone-400 text-sm">ไม่มีข้อมูล</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ❌ เมนูที่ไม่เคยขายเลย */}
+                  <div className="lg:col-span-1">
+                    <div className="bg-white rounded-2xl border border-stone-200 h-full">
+                      <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center">
+                            <Ban className="w-4 h-4 text-red-500" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-stone-800 text-sm">ไม่เคยขายเลย</h3>
+                          </div>
+                        </div>
+                        {prediction.neverSoldItems.length > 0 && (
+                          <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                            {prediction.neverSoldItems.length}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {prediction.neverSoldItems.length > 0 ? (
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <div className="divide-y divide-stone-50">
+                            {prediction.neverSoldItems.map((item) => (
+                              <div key={item.id} className="px-4 py-3 flex items-center gap-3">
+                                <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                                  <XCircle className="w-4 h-4 text-red-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-stone-700 text-sm truncate">{item.name}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center">
+                          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Award className="w-6 h-6 text-emerald-500" />
+                          </div>
+                          <p className="text-stone-600 font-medium text-sm">ยอดเยี่ยม!</p>
+                          <p className="text-stone-400 text-xs mt-1">ทุกเมนูมียอดขาย</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ==================== Insights Tab ==================== */}
               {activeTab === 'insights' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                  {/* Insights List */}
                   <div className="md:col-span-2 space-y-3">
                     <h3 className="font-semibold text-stone-800 flex items-center gap-2">
                       <Lightbulb className="w-4 h-4 text-amber-500" />
                       คำแนะนำจากข้อมูล
                     </h3>
                     {prediction.insights.map((insight, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-4 p-4 bg-white rounded-xl border border-stone-200"
-                      >
+                      <div key={index} className="flex items-start gap-4 p-4 bg-white rounded-xl border border-stone-200">
                         <div className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center flex-shrink-0">
                           <ChevronRight className="w-5 h-5 text-stone-500" />
                         </div>
-                        <p className="text-stone-700 leading-relaxed flex-1 pt-2">{insight}</p>
+                        <p className="text-stone-700 leading-relaxed flex-1 pt-2 text-sm">{insight}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* Summary Stats */}
                   <div className="lg:col-span-1">
                     <div className="bg-white rounded-2xl p-5 border border-stone-200">
                       <h3 className="font-semibold text-stone-800 mb-4">สรุปสถิติ</h3>
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         <div className="p-3 bg-stone-50 rounded-xl">
                           <p className="text-xs text-stone-400 mb-1">ยอดเฉลี่ย/บิล</p>
                           <p className="text-xl font-bold text-stone-800">฿{formatCurrency(prediction.averageOrderValue)}</p>
@@ -696,8 +911,12 @@ export default function SalesPrediction({ isOpen, onClose }: SalesPredictionProp
                           <p className="text-xl font-bold text-stone-800">{prediction.analyzedDays} วัน</p>
                         </div>
                         <div className="p-3 bg-stone-50 rounded-xl">
-                          <p className="text-xs text-stone-400 mb-1">จำนวนออเดอร์ทั้งหมด</p>
+                          <p className="text-xs text-stone-400 mb-1">ออเดอร์ทั้งหมด</p>
                           <p className="text-xl font-bold text-stone-800">{formatCurrency(prediction.totalOrders)}</p>
+                        </div>
+                        <div className="p-3 bg-stone-50 rounded-xl">
+                          <p className="text-xs text-stone-400 mb-1">เมนูไม่เคยขาย (ไม่รวมข้าว/น้ำ)</p>
+                          <p className="text-xl font-bold text-red-600">{prediction.neverSoldItems.length} เมนู</p>
                         </div>
                       </div>
                     </div>
