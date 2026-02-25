@@ -32,6 +32,9 @@ import {
   Zap,
   Image as ImageIcon,
   ExternalLink,
+  Wallet,
+  QrCode,
+  CircleDollarSign,
 } from 'lucide-react'
 
 type ViewMode = 'day' | 'week' | 'month'
@@ -117,7 +120,6 @@ export default function AccountingPage() {
   const thaiDays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
   const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
-  // State สำหรับเมนูขายดี/ขายไม่ออก
   const [topMenuItems, setTopMenuItems] = useState<MenuRanking[]>([])
   const [bottomMenuItems, setBottomMenuItems] = useState<MenuRanking[]>([])
   const [showMenuRanking, setShowMenuRanking] = useState(false)
@@ -182,7 +184,6 @@ export default function AccountingPage() {
     return { start: prevStart, end: prevEnd }
   }
 
-  // ✅ ย้าย loadMenuRanking ออกมาเป็นฟังก์ชันแยก เพื่อให้เรียกใช้ได้
   const loadMenuRanking = async (startDate: Date, endDate: Date) => {
     try {
       const { data: ordersInRange, error: ordersError } = await supabase
@@ -226,7 +227,6 @@ export default function AccountingPage() {
       })
 
       const allMenuRanking = Object.values(menuMap)
-
       const sortedTop = [...allMenuRanking].sort((a, b) => b.total_quantity - a.total_quantity)
       const sortedBottom = [...allMenuRanking].sort((a, b) => a.total_quantity - b.total_quantity)
 
@@ -245,7 +245,6 @@ export default function AccountingPage() {
       const { start, end } = getDateRange()
       const { start: prevStart, end: prevEnd } = getPreviousDateRange()
 
-      // ✅ เรียกใช้งานฟังก์ชัน loadMenuRanking ที่นี่
       await loadMenuRanking(start, end)
 
       const { data: ordersData, error: ordersError } = await supabase
@@ -288,21 +287,15 @@ export default function AccountingPage() {
 
       ordersList.forEach(order => {
         const status = order.payment_status?.toLowerCase()
-        if (status === 'cash') {
-          cashSum += order.total_amount
-        } else if (status === 'promptpay') {
-          promptPaySum += order.total_amount
-        } else {
-          unpaidSum += order.total_amount
-        }
+        if (status === 'cash') cashSum += order.total_amount
+        else if (status === 'promptpay') promptPaySum += order.total_amount
+        else unpaidSum += order.total_amount
       })
 
       const hourlyMap: { [key: number]: HourlySales } = {}
       ordersList.forEach((order) => {
         const hour = new Date(order.created_at).getHours()
-        if (!hourlyMap[hour]) {
-          hourlyMap[hour] = { hour, total: 0, orders: 0 }
-        }
+        if (!hourlyMap[hour]) hourlyMap[hour] = { hour, total: 0, orders: 0 }
         hourlyMap[hour].total += order.total_amount
         hourlyMap[hour].orders += 1
       })
@@ -334,8 +327,6 @@ export default function AccountingPage() {
         const dailyMap: { [key: string]: DailySales } = {}
         ordersList.forEach((order) => {
           const orderDate = new Date(order.created_at)
-          
-          // ✅ แก้ไขเรื่อง Timezone
           const offset = orderDate.getTimezoneOffset() * 60000
           const localDate = new Date(orderDate.getTime() - offset)
           const dateKey = localDate.toISOString().split('T')[0]
@@ -360,19 +351,13 @@ export default function AccountingPage() {
   const loadOrderItems = async (order: OrderDetail) => {
     setSelectedOrder(order)
     setLoadingOrderItems(true)
-
     try {
       const { data: items, error } = await supabase
         .from('order_items')
         .select('*, menu_items(name)')
         .eq('order_id', order.order_id)
-
       if (error) throw error
-
-      setSelectedOrder({
-        ...order,
-        items: items || []
-      })
+      setSelectedOrder({ ...order, items: items || [] })
     } catch (err) {
       console.error('Error loading order items:', err)
     } finally {
@@ -435,7 +420,6 @@ export default function AccountingPage() {
   }
 
   const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
-
   const formatHour = (hour: number) => `${hour.toString().padStart(2, '0')}:00`
 
   const getPercentChange = () => {
@@ -446,21 +430,13 @@ export default function AccountingPage() {
   const getSortedOrders = () => {
     const sorted = [...orders]
     switch (sortBy) {
-      case 'time':
-        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      case 'amount':
-        return sorted.sort((a, b) => b.total_amount - a.total_amount)
-      case 'status':
-        return sorted.sort((a, b) => {
-          const score = (status: string) => {
-            if (status === 'unpaid') return 3
-            if (status === 'promptpay') return 2
-            return 1
-          }
-          return score(b.payment_status) - score(a.payment_status)
-        })
-      default:
-        return sorted
+      case 'time': return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      case 'amount': return sorted.sort((a, b) => b.total_amount - a.total_amount)
+      case 'status': return sorted.sort((a, b) => {
+        const score = (status: string) => { if (status === 'unpaid') return 3; if (status === 'promptpay') return 2; return 1 }
+        return score(b.payment_status) - score(a.payment_status)
+      })
+      default: return sorted
     }
   }
 
@@ -475,6 +451,7 @@ export default function AccountingPage() {
   const maxHourlyOrders = Math.max(...hourlyData.map(h => h.orders), 1)
   const maxDailyTotal = Math.max(...dailyData.map(d => d.total), 1)
 
+  // Loading
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-50">
@@ -486,6 +463,7 @@ export default function AccountingPage() {
     )
   }
 
+  // Error
   if (error) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
@@ -507,8 +485,8 @@ export default function AccountingPage() {
     <main className="min-h-screen bg-stone-50 pb-24">
       {/* Header */}
       <div className="bg-white border-b border-stone-200 sticky top-0 z-50">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center">
                 <BarChart3 className="w-5 h-5 text-stone-600" />
@@ -536,27 +514,20 @@ export default function AccountingPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-4">
-            <button
-              onClick={() => navigateDate('prev')}
-              className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center hover:bg-stone-200 transition-colors"
-            >
+          {/* Date Navigator */}
+          <div className="flex items-center gap-2 mb-3">
+            <button onClick={() => navigateDate('prev')} className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center hover:bg-stone-200 transition-colors">
               <ChevronLeft className="w-5 h-5 text-stone-600" />
             </button>
-            <button
-              onClick={() => setShowCalendar(true)}
-              className="flex-1 bg-stone-800 rounded-xl py-3 text-white font-medium text-center hover:bg-stone-700 transition-colors"
-            >
+            <button onClick={() => setShowCalendar(true)} className="flex-1 bg-stone-800 rounded-xl py-2.5 text-white font-medium text-center text-sm hover:bg-stone-700 transition-colors">
               {formatDateDisplay()}
             </button>
-            <button
-              onClick={() => navigateDate('next')}
-              className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center hover:bg-stone-200 transition-colors"
-            >
+            <button onClick={() => navigateDate('next')} className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center hover:bg-stone-200 transition-colors">
               <ChevronRight className="w-5 h-5 text-stone-600" />
             </button>
           </div>
 
+          {/* View Mode */}
           <div className="flex gap-1 bg-stone-100 p-1 rounded-xl">
             {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
               <button
@@ -575,18 +546,14 @@ export default function AccountingPage() {
 
       {/* Calendar Modal */}
       {showCalendar && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowCalendar(false)} />
-          <div ref={calendarRef} className="relative bg-white w-full max-w-lg rounded-t-3xl p-5 pb-8">
-            <div className="w-12 h-1 bg-stone-300 rounded-full mx-auto mb-4" />
+          <div ref={calendarRef} className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl p-5 pb-8">
+            <div className="sm:hidden w-12 h-1 bg-stone-300 rounded-full mx-auto mb-4" />
             <div className="flex items-center justify-between mb-4">
-              <button onClick={() => navigateCalendarMonth('prev')} className="p-2 hover:bg-stone-100 rounded-lg">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
+              <button onClick={() => navigateCalendarMonth('prev')} className="p-2 hover:bg-stone-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
               <h3 className="font-semibold text-stone-800">{thaiMonths[calendarDate.getMonth()]} {calendarDate.getFullYear() + 543}</h3>
-              <button onClick={() => navigateCalendarMonth('next')} className="p-2 hover:bg-stone-100 rounded-lg">
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              <button onClick={() => navigateCalendarMonth('next')} className="p-2 hover:bg-stone-100 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
             </div>
             <div className="grid grid-cols-7 gap-1 mb-2">
               {thaiDays.map((day, i) => (
@@ -619,44 +586,26 @@ export default function AccountingPage() {
 
       {/* Slip Image Modal */}
       {showSlipModal && selectedOrder?.slip_url && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/80" onClick={() => setShowSlipModal(false)} />
-          <div className="relative bg-white rounded-2xl overflow-hidden max-w-lg w-full max-h-[90vh]">
+          <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl overflow-hidden max-h-[90vh]">
             <div className="bg-sky-500 px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3 text-white">
                 <ImageIcon className="w-5 h-5" />
                 <span className="font-bold">สลิปการโอนเงิน</span>
               </div>
-              <button
-                onClick={() => setShowSlipModal(false)}
-                className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
-              >
+              <button onClick={() => setShowSlipModal(false)} className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                 <X className="w-4 h-4 text-white" />
               </button>
             </div>
-            <div className="p-4 bg-stone-100">
-              <img
-                src={selectedOrder.slip_url}
-                alt="สลิปการโอนเงิน"
-                className="w-full h-auto rounded-xl"
-              />
+            <div className="p-4 bg-stone-100 overflow-y-auto">
+              <img src={selectedOrder.slip_url} alt="สลิป" className="w-full h-auto rounded-xl" />
             </div>
             <div className="p-4 bg-white border-t border-stone-100 flex gap-3">
-              <a
-                href={selectedOrder.slip_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 py-3 bg-sky-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-sky-600 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                เปิดในแท็บใหม่
+              <a href={selectedOrder.slip_url} target="_blank" rel="noopener noreferrer" className="flex-1 py-3 bg-sky-500 text-white rounded-xl font-medium flex items-center justify-center gap-2">
+                <ExternalLink className="w-4 h-4" /> เปิดในแท็บใหม่
               </a>
-              <button
-                onClick={() => setShowSlipModal(false)}
-                className="flex-1 py-3 bg-stone-100 text-stone-700 rounded-xl font-medium hover:bg-stone-200 transition-colors"
-              >
-                ปิด
-              </button>
+              <button onClick={() => setShowSlipModal(false)} className="flex-1 py-3 bg-stone-100 text-stone-700 rounded-xl font-medium">ปิด</button>
             </div>
           </div>
         </div>
@@ -664,39 +613,40 @@ export default function AccountingPage() {
 
       {/* Order Detail Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedOrder(null)} />
-          <div className="relative bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Drag Handle */}
+            <div className="sm:hidden flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-stone-300 rounded-full" />
+            </div>
+            
             <div className={`p-5 ${isTakeaway(selectedOrder) ? 'bg-violet-50' : 'bg-sky-50'}`}>
-              <button onClick={() => setSelectedOrder(null)} className="absolute top-4 right-4 p-1 rounded-full hover:bg-black/10">
-                <X className="w-5 h-5 text-stone-600" />
+              <button onClick={() => setSelectedOrder(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/5 rounded-full flex items-center justify-center">
+                <X className="w-4 h-4 text-stone-600" />
               </button>
               <div className="flex items-center gap-3">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isTakeaway(selectedOrder) ? 'bg-violet-100' : 'bg-sky-100'}`}>
                   {isTakeaway(selectedOrder) ? <Home className="w-6 h-6 text-violet-600" /> : <Utensils className="w-6 h-6 text-sky-600" />}
                 </div>
                 <div>
-                  <p className="text-stone-500 text-sm">{isTakeaway(selectedOrder) ? 'สั่งกลับบ้าน' : `${selectedOrder.table_number}`}</p>
+                  <p className="text-stone-500 text-sm">{isTakeaway(selectedOrder) ? 'สั่งกลับบ้าน' : selectedOrder.table_number}</p>
                   <p className="font-bold text-stone-800">{selectedOrder.order_id}</p>
                 </div>
               </div>
             </div>
 
             <div className="p-5 border-b border-stone-100">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="text-center p-3 bg-stone-50 rounded-xl">
                   <p className="text-xs text-stone-400 mb-1">เวลา</p>
                   <p className="font-semibold text-stone-700">{formatTime(selectedOrder.created_at)}</p>
                 </div>
                 <div className="text-center p-3 bg-stone-50 rounded-xl">
-                  <p className="text-xs text-stone-400 mb-1">ลูกค้า</p>
-                  <p className="font-semibold text-stone-700">{selectedOrder.customer_count} คน</p>
-                </div>
-                <div className="text-center p-3 bg-stone-50 rounded-xl">
                   <p className="text-xs text-stone-400 mb-1">ชำระ</p>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    selectedOrder.payment_status === 'cash' ? 'bg-emerald-100 text-emerald-700' : 
-                    selectedOrder.payment_status === 'promptpay' ? 'bg-sky-100 text-sky-700' : 
+                    selectedOrder.payment_status === 'cash' ? 'bg-emerald-100 text-emerald-700' :
+                    selectedOrder.payment_status === 'promptpay' ? 'bg-sky-100 text-sky-700' :
                     'bg-amber-100 text-amber-700'
                   }`}>
                     {selectedOrder.payment_status === 'cash' ? 'เงินสด' : selectedOrder.payment_status === 'promptpay' ? 'พร้อมเพย์' : 'ค้าง'}
@@ -705,34 +655,24 @@ export default function AccountingPage() {
               </div>
             </div>
 
-            {/* แสดงปุ่มดูสลิปถ้าเป็น PromptPay และมี slip_url */}
             {selectedOrder.payment_status === 'promptpay' && selectedOrder.slip_url && (
               <div className="px-5 py-3 border-b border-stone-100">
-                <button
-                  onClick={() => setShowSlipModal(true)}
-                  className="w-full py-3 bg-sky-50 text-sky-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-sky-100 transition-colors border border-sky-200"
-                >
-                  <ImageIcon className="w-5 h-5" />
-                  ดูสลิปการโอนเงิน
+                <button onClick={() => setShowSlipModal(true)} className="w-full py-3 bg-sky-50 text-sky-600 rounded-xl font-medium flex items-center justify-center gap-2 border border-sky-200 active:scale-[0.98]">
+                  <ImageIcon className="w-5 h-5" /> ดูสลิปการโอนเงิน
                 </button>
               </div>
             )}
 
-            {/* แสดงข้อความถ้าเป็น PromptPay แต่ไม่มีสลิป */}
             {selectedOrder.payment_status === 'promptpay' && !selectedOrder.slip_url && (
               <div className="px-5 py-3 border-b border-stone-100">
-                <div className="py-3 bg-amber-50 text-amber-600 rounded-xl text-center text-sm font-medium border border-amber-200">
-                  ไม่มีรูปสลิป
-                </div>
+                <div className="py-3 bg-amber-50 text-amber-600 rounded-xl text-center text-sm font-medium border border-amber-200">ไม่มีรูปสลิป</div>
               </div>
             )}
 
             <div className="p-5 flex-1 overflow-y-auto">
-              <h4 className="font-semibold text-stone-800 mb-3 flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                รายการอาหาร
+              <h4 className="font-semibold text-stone-800 mb-3 flex items-center gap-2 text-sm">
+                <Package className="w-4 h-4" /> รายการอาหาร
               </h4>
-
               {loadingOrderItems ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="w-6 h-6 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin"></div>
@@ -742,12 +682,10 @@ export default function AccountingPage() {
                   {selectedOrder.items.map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 bg-stone-50 rounded-xl">
                       <div className="flex items-center gap-3">
-                        <span className="w-7 h-7 bg-stone-200 rounded-lg flex items-center justify-center text-stone-600 font-medium text-sm">
-                          {item.quantity}
-                        </span>
-                        <span className="text-stone-700">{item.menu_items?.name || 'ไม่ระบุ'}</span>
+                        <span className="w-7 h-7 bg-stone-200 rounded-lg flex items-center justify-center text-stone-600 font-medium text-sm">{item.quantity}</span>
+                        <span className="text-stone-700 text-sm">{item.menu_items?.name || 'ไม่ระบุ'}</span>
                       </div>
-                      <span className="font-semibold text-stone-800">฿{formatCurrency(item.price * item.quantity)}</span>
+                      <span className="font-semibold text-stone-800 text-sm">฿{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -773,109 +711,125 @@ export default function AccountingPage() {
       <div className="p-4 space-y-4">
         <SalesPrediction isOpen={showPrediction} onClose={() => setShowPrediction(false)} />
 
-        {/* Revenue Summary */}
-        <div className="bg-white rounded-2xl p-5 border border-stone-200">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <p className="text-stone-500 text-sm mb-1">รายรับรวม</p>
-              <p className="text-3xl font-bold text-stone-800">฿{formatCurrency(totalRevenue)}</p>
+        {/* ✅ Revenue Summary - ปรับปรุงใหม่ */}
+        <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
+          {/* Main Revenue - Dark Theme */}
+          <div className="p-5 bg-gradient-to-br from-stone-800 to-stone-900 text-white">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <p className="text-stone-400 text-sm mb-1 flex items-center gap-1.5">
+                  <CircleDollarSign className="w-4 h-4" />
+                  รายรับรวม
+                </p>
+                <p className="text-3xl sm:text-4xl font-bold tracking-tight">฿{formatCurrency(totalRevenue)}</p>
+              </div>
+              <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold ${
+                percentChange >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+              }`}>
+                {percentChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                {Math.abs(percentChange).toFixed(1)}%
+              </div>
             </div>
-            <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium ${
-              percentChange >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
-            }`}>
-              {percentChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-              {Math.abs(percentChange).toFixed(1)}%
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
+                <ShoppingBag className="w-5 h-5 text-stone-400 mx-auto mb-1.5" />
+                <p className="text-xl font-bold">{totalOrders}</p>
+                <p className="text-[10px] text-stone-400 mt-0.5">ออเดอร์</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
+                <Banknote className="w-5 h-5 text-stone-400 mx-auto mb-1.5" />
+                <p className="text-xl font-bold">฿{formatCurrency(averageOrder)}</p>
+                <p className="text-[10px] text-stone-400 mt-0.5">เฉลี่ย/บิล</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
+                <Clock className="w-5 h-5 text-stone-400 mx-auto mb-1.5" />
+                <p className="text-xl font-bold">{peakHour !== null ? formatHour(peakHour) : '--:--'}</p>
+                <p className="text-[10px] text-stone-400 mt-0.5">ช่วงขายดี</p>
+              </div>
             </div>
           </div>
 
-          {/* ✅ ปรับ Grid เป็น 3 ช่อง และลบ Average/Person ออก */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="text-center p-3 bg-stone-50 rounded-xl">
-              <p className="text-xl font-bold text-stone-800">{totalOrders}</p>
-              <p className="text-xs text-stone-500">ออเดอร์</p>
-            </div>
-            <div className="text-center p-3 bg-stone-50 rounded-xl">
-              <p className="text-xl font-bold text-stone-800">{totalCustomers}</p>
-              <p className="text-xs text-stone-500">ลูกค้า</p>
-            </div>
-            <div className="text-center p-3 bg-stone-50 rounded-xl">
-              <p className="text-xl font-bold text-stone-800">฿{formatCurrency(averageOrder)}</p>
-              <p className="text-xs text-stone-500">เฉลี่ย/บิล</p>
-            </div>
-          </div>
         </div>
 
-        {/* Payment & Order Type Analysis */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* ✅ Payment & Order Type - ปรับปรุง */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Payment */}
           <div className="bg-white rounded-2xl p-4 border border-stone-200">
             <h3 className="font-semibold text-stone-800 mb-3 flex items-center gap-2 text-sm">
-              <CreditCard className="w-4 h-4 text-stone-500" />
+              <Wallet className="w-4 h-4 text-stone-500" />
               การชำระเงิน
             </h3>
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-stone-600">เงินสด</span>
+                  <span className="text-stone-600 flex items-center gap-1"><Banknote className="w-3.5 h-3.5 text-emerald-500" /> เงินสด</span>
                   <span className="font-medium text-stone-800">฿{formatCurrency(cashTotal)}</span>
                 </div>
                 <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${totalRevenue > 0 ? (cashTotal / totalRevenue) * 100 : 0}%` }}></div>
+                  <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${totalRevenue > 0 ? (cashTotal / totalRevenue) * 100 : 0}%` }}></div>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-stone-600">พร้อมเพย์</span>
+                  <span className="text-stone-600 flex items-center gap-1"><QrCode className="w-3.5 h-3.5 text-sky-500" /> พร้อมเพย์</span>
                   <span className="font-medium text-stone-800">฿{formatCurrency(promptPayTotal)}</span>
                 </div>
                 <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-sky-400 rounded-full" style={{ width: `${totalRevenue > 0 ? (promptPayTotal / totalRevenue) * 100 : 0}%` }}></div>
+                  <div className="h-full bg-sky-400 rounded-full transition-all" style={{ width: `${totalRevenue > 0 ? (promptPayTotal / totalRevenue) * 100 : 0}%` }}></div>
                 </div>
               </div>
               {unpaidAmount > 0 && (
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-stone-600">ค้างชำระ</span>
+                    <span className="text-stone-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5 text-amber-500" /> ค้าง</span>
                     <span className="font-medium text-amber-600">฿{formatCurrency(unpaidAmount)}</span>
                   </div>
                   <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-400 rounded-full" style={{ width: `${totalRevenue > 0 ? (unpaidAmount / totalRevenue) * 100 : 0}%` }}></div>
+                    <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${totalRevenue > 0 ? (unpaidAmount / totalRevenue) * 100 : 0}%` }}></div>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
+          {/* Order Type */}
           <div className="bg-white rounded-2xl p-4 border border-stone-200">
             <h3 className="font-semibold text-stone-800 mb-3 flex items-center gap-2 text-sm">
               <PieChart className="w-4 h-4 text-stone-500" />
-              ประเภทออเดอร์
+              ประเภท
             </h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-2 bg-sky-50 rounded-xl">
+              <div className="flex items-center justify-between p-2.5 bg-sky-50 rounded-xl border border-sky-100">
                 <div className="flex items-center gap-2">
-                  <Utensils className="w-4 h-4 text-sky-600" />
-                  <span className="text-sm text-stone-700">ทานที่ร้าน</span>
+                  <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
+                    <Utensils className="w-4 h-4 text-sky-600" />
+                  </div>
+                  <span className="text-sm text-stone-700">ที่ร้าน</span>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-stone-800">{dineInOrders}</p>
-                  <p className="text-xs text-stone-500">฿{formatCurrency(dineInRevenue)}</p>
+                  <p className="font-bold text-stone-800">{dineInOrders}</p>
+                  <p className="text-[10px] text-stone-500">฿{formatCurrency(dineInRevenue)}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between p-2 bg-violet-50 rounded-xl">
+              <div className="flex items-center justify-between p-2.5 bg-violet-50 rounded-xl border border-violet-100">
                 <div className="flex items-center gap-2">
-                  <Home className="w-4 h-4 text-violet-600" />
+                  <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
+                    <Home className="w-4 h-4 text-violet-600" />
+                  </div>
                   <span className="text-sm text-stone-700">กลับบ้าน</span>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-stone-800">{takeawayOrders}</p>
-                  <p className="text-xs text-stone-500">฿{formatCurrency(takeawayRevenue)}</p>
+                  <p className="font-bold text-stone-800">{takeawayOrders}</p>
+                  <p className="text-[10px] text-stone-500">฿{formatCurrency(takeawayRevenue)}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Insights */}
+        {/* ✅ Insights */}
         {(peakHour !== null || totalOrders > 0) && (
           <div className="bg-white rounded-2xl p-4 border border-stone-200">
             <h3 className="font-semibold text-stone-800 mb-3 flex items-center gap-2 text-sm">
@@ -884,22 +838,22 @@ export default function AccountingPage() {
             </h3>
             <div className="grid grid-cols-2 gap-3">
               {peakHour !== null && (
-                <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl">
-                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
                     <Clock className="w-5 h-5 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-stone-500">ช่วงขายดี</p>
+                    <p className="text-[10px] text-stone-500">ช่วงขายดี</p>
                     <p className="font-bold text-stone-800">{formatHour(peakHour)}</p>
                   </div>
                 </div>
               )}
-              <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl">
-                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+              <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
                   <Target className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-stone-500">ยอดสูงสุด</p>
+                  <p className="text-[10px] text-stone-500">ยอดสูงสุด</p>
                   <p className="font-bold text-stone-800">฿{formatCurrency(Math.max(...orders.map(o => o.total_amount), 0))}</p>
                 </div>
               </div>
@@ -907,14 +861,10 @@ export default function AccountingPage() {
           </div>
         )}
 
-        {/* เมนูขายดี & ขายไม่ออก */}
+        {/* ✅ เมนูขายดี & ขายไม่ออก */}
         {(topMenuItems.length > 0 || bottomMenuItems.length > 0) && (
           <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-            {/* Header */}
-            <button
-              onClick={() => setShowMenuRanking(!showMenuRanking)}
-              className="w-full p-4 flex items-center justify-between hover:bg-stone-50 transition-colors"
-            >
+            <button onClick={() => setShowMenuRanking(!showMenuRanking)} className="w-full p-4 flex items-center justify-between hover:bg-stone-50 transition-colors">
               <h3 className="font-semibold text-stone-800 flex items-center gap-2 text-sm">
                 <ShoppingBag className="w-4 h-4 text-stone-500" />
                 เมนูขายดี & ขายไม่ค่อยออก
@@ -924,72 +874,52 @@ export default function AccountingPage() {
 
             {showMenuRanking && (
               <div className="px-4 pb-4">
-                {/* Tab สลับ ขายดี / ขายไม่ออก */}
                 <div className="flex gap-1 bg-stone-100 p-1 rounded-xl mb-4">
                   <button
                     onClick={() => setMenuRankingTab('top')}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-                      menuRankingTab === 'top' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                      menuRankingTab === 'top' ? 'bg-emerald-500 text-white shadow-sm' : 'text-stone-500'
                     }`}
                   >
-                    <ArrowUpRight className="w-4 h-4" />
-                    ขายดี
+                    <ArrowUpRight className="w-4 h-4" /> ขายดี
                   </button>
                   <button
                     onClick={() => setMenuRankingTab('bottom')}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-                      menuRankingTab === 'bottom' ? 'bg-red-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                      menuRankingTab === 'bottom' ? 'bg-red-500 text-white shadow-sm' : 'text-stone-500'
                     }`}
                   >
-                    <ArrowDownRight className="w-4 h-4" />
-                    ขายไม่ค่อยออก
+                    <ArrowDownRight className="w-4 h-4" /> ขายไม่ค่อยออก
                   </button>
                 </div>
 
-                {/* รายการเมนู */}
                 <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {(menuRankingTab === 'top' ? topMenuItems : bottomMenuItems).map((item, index) => {
-                    const maxQty = menuRankingTab === 'top'
-                      ? topMenuItems[0]?.total_quantity || 1
-                      : bottomMenuItems[bottomMenuItems.length - 1]?.total_quantity || 1
-                    
-                    return (
-                      <div key={item.menu_item_id} className="flex items-center gap-3">
-                        {/* อันดับ */}
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
-                          menuRankingTab === 'top'
-                            ? index === 0 ? 'bg-amber-100 text-amber-700'
-                              : index === 1 ? 'bg-stone-200 text-stone-600'
-                              : index === 2 ? 'bg-orange-100 text-orange-700'
-                              : 'bg-stone-100 text-stone-500'
-                            : 'bg-red-50 text-red-500'
-                        }`}>
-                          {index + 1}
-                        </div>
-
-                        {/* ข้อมูลเมนู */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-sm font-medium text-stone-800 truncate pr-2">{item.name}</p>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-xs text-stone-500">{item.total_quantity} ชิ้น</span>
-                              <span className="text-sm font-semibold text-stone-800">฿{formatCurrency(item.total_revenue)}</span>
-                            </div>
-                          </div>
-                          <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                menuRankingTab === 'top' ? 'bg-emerald-400' : 'bg-red-400'
-                              }`}
-                              style={{ width: `${menuRankingTab === 'top' ? (item.total_quantity / (topMenuItems[0]?.total_quantity || 1)) * 100 : 100}%` }}
-                            ></div>
-                          </div>
-                          <p className="text-xs text-stone-400 mt-0.5">{item.order_count} ออเดอร์</p>
-                        </div>
+                  {(menuRankingTab === 'top' ? topMenuItems : bottomMenuItems).map((item, index) => (
+                    <div key={item.menu_item_id} className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
+                        menuRankingTab === 'top'
+                          ? index === 0 ? 'bg-amber-100 text-amber-700' : index === 1 ? 'bg-stone-200 text-stone-600' : index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-stone-100 text-stone-500'
+                          : 'bg-red-50 text-red-500'
+                      }`}>
+                        {index + 1}
                       </div>
-                    )
-                  })}
-
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-medium text-stone-800 truncate pr-2">{item.name}</p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs text-stone-500">{item.total_quantity} ชิ้น</span>
+                            <span className="text-sm font-semibold text-stone-800">฿{formatCurrency(item.total_revenue)}</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${menuRankingTab === 'top' ? 'bg-emerald-400' : 'bg-red-400'}`}
+                            style={{ width: `${menuRankingTab === 'top' ? (item.total_quantity / (topMenuItems[0]?.total_quantity || 1)) * 100 : 100}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-stone-400 mt-0.5">{item.order_count} ออเดอร์</p>
+                      </div>
+                    </div>
+                  ))}
                   {(menuRankingTab === 'top' ? topMenuItems : bottomMenuItems).length === 0 && (
                     <div className="text-center py-6 text-stone-400">
                       <ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -1002,7 +932,7 @@ export default function AccountingPage() {
           </div>
         )}
 
-        {/* Hourly Chart (Day View) */}
+        {/* ✅ Hourly Chart */}
         {viewMode === 'day' && hourlyData.length > 0 && (
           <div className="bg-white rounded-2xl p-4 border border-stone-200">
             <h3 className="font-semibold text-stone-800 mb-4 flex items-center gap-2 text-sm">
@@ -1014,19 +944,20 @@ export default function AccountingPage() {
                 const data = hourlyData.find(h => h.hour === hour)
                 const ordersCount = data?.orders || 0
                 const height = ordersCount > 0 ? (ordersCount / maxHourlyOrders) * 100 : 0
+                const isPeak = hour === peakHour
 
                 return (
                   <div key={hour} className="flex-1 flex flex-col items-center">
                     <div className="w-full flex items-end justify-center h-24">
                       <div
-                        className={`w-full max-w-[12px] rounded-t transition-all ${ordersCount > 0 ? 'bg-stone-300 hover:bg-stone-400' : 'bg-stone-100'}`}
+                        className={`w-full max-w-[12px] rounded-t transition-all ${
+                          isPeak ? 'bg-amber-400' : ordersCount > 0 ? 'bg-stone-300' : 'bg-stone-100'
+                        }`}
                         style={{ height: `${Math.max(height, ordersCount > 0 ? 8 : 2)}%` }}
                         title={`${formatHour(hour)}: ${ordersCount} ออเดอร์`}
                       ></div>
                     </div>
-                    {hour % 4 === 0 && (
-                      <span className="text-[10px] text-stone-400 mt-1">{hour}</span>
-                    )}
+                    {hour % 4 === 0 && <span className="text-[10px] text-stone-400 mt-1">{hour}</span>}
                   </div>
                 )
               })}
@@ -1039,23 +970,19 @@ export default function AccountingPage() {
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'overview' ? 'bg-stone-800 text-white' : 'text-stone-500 hover:text-stone-700'
+              activeTab === 'overview' ? 'bg-stone-800 text-white' : 'text-stone-500'
             }`}
           >
-            <TrendingUp className="w-4 h-4" />
-            ภาพรวม
+            <TrendingUp className="w-4 h-4" /> ภาพรวม
           </button>
           <button
             onClick={() => setActiveTab('orders')}
             className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'orders' ? 'bg-stone-800 text-white' : 'text-stone-500 hover:text-stone-700'
+              activeTab === 'orders' ? 'bg-stone-800 text-white' : 'text-stone-500'
             }`}
           >
-            <Receipt className="w-4 h-4" />
-            ออเดอร์
-            <span className={`px-1.5 py-0.5 rounded text-xs ${activeTab === 'orders' ? 'bg-white/20' : 'bg-stone-100'}`}>
-              {orders.length}
-            </span>
+            <Receipt className="w-4 h-4" /> ออเดอร์
+            <span className={`px-1.5 py-0.5 rounded text-xs ${activeTab === 'orders' ? 'bg-white/20' : 'bg-stone-100'}`}>{orders.length}</span>
           </button>
         </div>
 
@@ -1071,7 +998,7 @@ export default function AccountingPage() {
                 <div className="space-y-2 max-h-72 overflow-y-auto">
                   {dailyData.slice().reverse().map((day) => (
                     <div key={day.date} className="flex items-center gap-3">
-                      <div className="w-16 text-right">
+                      <div className="w-14 text-right">
                         <p className="text-sm font-medium text-stone-700">{new Date(day.date).getDate()}</p>
                         <p className="text-xs text-stone-400">{thaiDays[day.dayOfWeek]}</p>
                       </div>
@@ -1085,9 +1012,7 @@ export default function AccountingPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="w-16 text-right text-xs text-stone-500">
-                        {day.orders} บิล
-                      </div>
+                      <div className="w-14 text-right text-xs text-stone-500">{day.orders} บิล</div>
                     </div>
                   ))}
                 </div>
@@ -1110,10 +1035,7 @@ export default function AccountingPage() {
               <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
                 <span className="text-sm text-stone-500">{orders.length} รายการ</span>
                 <div className="relative">
-                  <button
-                    onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="flex items-center gap-1.5 text-sm text-stone-600 hover:text-stone-800 font-medium"
-                  >
+                  <button onClick={() => setShowSortMenu(!showSortMenu)} className="flex items-center gap-1.5 text-sm text-stone-600 font-medium">
                     <Filter className="w-4 h-4" />
                     {sortBy === 'time' ? 'เวลา' : sortBy === 'amount' ? 'ยอด' : 'สถานะ'}
                     <ChevronDown className="w-4 h-4" />
@@ -1128,9 +1050,7 @@ export default function AccountingPage() {
                         <button
                           key={option.value}
                           onClick={() => { setSortBy(option.value as SortBy); setShowSortMenu(false) }}
-                          className={`w-full px-3 py-2 text-left text-sm hover:bg-stone-50 ${
-                            sortBy === option.value ? 'text-stone-800 font-medium' : 'text-stone-600'
-                          }`}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-stone-50 ${sortBy === option.value ? 'text-stone-800 font-medium' : 'text-stone-600'}`}
                         >
                           {option.label}
                         </button>
@@ -1144,36 +1064,29 @@ export default function AccountingPage() {
             {orders.length > 0 ? (
               <div className="divide-y divide-stone-50">
                 {getSortedOrders().map((order) => (
-                  <button
-                    key={order.id}
-                    onClick={() => loadOrderItems(order)}
-                    className="w-full p-4 hover:bg-stone-50 transition-colors text-left"
-                  >
+                  <button key={order.id} onClick={() => loadOrderItems(order)} className="w-full p-4 hover:bg-stone-50 transition-colors text-left active:bg-stone-100">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        isTakeaway(order) ? 'bg-violet-50' : 'bg-sky-50'
-                      }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isTakeaway(order) ? 'bg-violet-50' : 'bg-sky-50'}`}>
                         {isTakeaway(order) ? <Home className="w-5 h-5 text-violet-600" /> : <Utensils className="w-5 h-5 text-sky-600" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <p className="font-semibold text-stone-800 text-sm">{order.order_id}</p>
-                          <span className={`w-2 h-2 rounded-full ${
-                            order.payment_status === 'cash' ? 'bg-emerald-400' : 
+                          <p className="font-semibold text-stone-800 text-sm truncate">{order.order_id}</p>
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${
+                            order.payment_status === 'cash' ? 'bg-emerald-400' :
                             order.payment_status === 'promptpay' ? 'bg-sky-400' : 'bg-amber-400'
                           }`}></span>
-                          {/* แสดงไอคอนรูปภาพถ้ามีสลิป */}
                           {order.payment_status === 'promptpay' && order.slip_url && (
-                            <ImageIcon className="w-3.5 h-3.5 text-sky-500" />
+                            <ImageIcon className="w-3.5 h-3.5 text-sky-500 shrink-0" />
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-stone-400">
-                          <span>{isTakeaway(order) ? 'กลับบ้าน' : `${order.table_number}`}</span>
-                          <Minus className="w-3 h-3" />
+                          <span>{isTakeaway(order) ? 'กลับบ้าน' : order.table_number}</span>
+                          <span>•</span>
                           <span>{formatTime(order.created_at)}</span>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <p className="font-bold text-stone-800">฿{formatCurrency(order.total_amount)}</p>
                       </div>
                     </div>
